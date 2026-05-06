@@ -353,9 +353,10 @@ interface Props {
   burstTrigger?: number;
 }
 
-export function GardenScene({ gardenLevel, height = 220, burstTrigger = 0 }: Props) {
+export const GardenScene = React.forwardRef<View, Props>(
+  function GardenScene({ gardenLevel, height = 220, burstTrigger = 0 }, ref) {
   return (
-    <View style={[styles.container, { height }]}>
+    <View ref={ref} style={[styles.container, { height }]}>
       <LinearGradient
         colors={["#0D2B28", "#0A1E1C", "#0D3535"]}
         style={StyleSheet.absoluteFill}
@@ -408,6 +409,7 @@ export function GardenScene({ gardenLevel, height = 220, burstTrigger = 0 }: Pro
     </View>
   );
 }
+);
 
 const styles = StyleSheet.create({
   container: {

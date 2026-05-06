@@ -1,12 +1,17 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
+  Alert,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
@@ -21,6 +26,8 @@ export default function GardenScreen() {
   const { state, completeDailyAction, todayActions } = useGame();
   const gardenLevel = getGardenLevel(state.xp);
   const [burstTrigger, setBurstTrigger] = useState(0);
+  const [sharing, setSharing] = useState(false);
+  const gardenRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
@@ -44,6 +51,47 @@ export default function GardenScreen() {
     [completeDailyAction]
   );
 
+  const handleShare = useCallback(async () => {
+    if (Platform.OS === "web") {
+      Alert.alert("Sharing not available", "Sharing is only supported on iOS and Android.");
+      return;
+    }
+
+    if (!gardenRef.current) return;
+
+    try {
+      setSharing(true);
+      const uri = await captureRef(gardenRef, {
+        format: "png",
+        quality: 1,
+      });
+      const day = state.streak > 0 ? state.streak : 1;
+      const caption = `Day ${day} of my job search garden 🌸 #CareerGarden`;
+
+      if (Platform.OS === "ios") {
+        await Share.share(
+          { message: caption, url: uri },
+          { subject: "My Career Garden" }
+        );
+      } else {
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (!isAvailable) {
+          Alert.alert("Sharing not available", "Your device doesn't support sharing.");
+          return;
+        }
+        await Sharing.shareAsync(uri, {
+          dialogTitle: caption,
+          mimeType: "image/png",
+        });
+        await Share.share({ message: caption });
+      }
+    } catch {
+      Alert.alert("Could not share", "Something went wrong capturing your garden.");
+    } finally {
+      setSharing(false);
+    }
+  }, [state.streak, gardenRef]);
+
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
@@ -60,13 +108,26 @@ export default function GardenScreen() {
             {gardenName}
           </Text>
         </View>
+        <TouchableOpacity
+          onPress={handleShare}
+          disabled={sharing}
+          style={[
+            styles.shareButton,
+            { backgroundColor: colors.card, borderColor: colors.border, opacity: sharing ? 0.5 : 1 },
+          ]}
+          activeOpacity={0.75}
+        >
+          <Text style={[styles.shareButtonText, { color: colors.primary }]}>
+            {sharing ? "Sharing…" : "Share Garden 🌸"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.xpSection}>
         <XPBar xp={state.xp} streak={state.streak} compact />
       </View>
 
-      <GardenScene gardenLevel={gardenLevel} height={220} burstTrigger={burstTrigger} />
+      <GardenScene ref={gardenRef} gardenLevel={gardenLevel} height={220} burstTrigger={burstTrigger} />
 
       <View style={styles.gardenHint}>
         <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
@@ -137,6 +198,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
+  },
+  shareButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  shareButtonText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
   },
   xpSection: {},
   dailySection: { gap: 4 },
