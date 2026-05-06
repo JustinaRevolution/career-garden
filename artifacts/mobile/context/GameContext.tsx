@@ -8,6 +8,7 @@ import {
   getLevelFromXP,
   MODULES,
   getTodayActions,
+  POWER_UP_MILESTONES,
 } from "@/data/content";
 
 const STORAGE_KEY = "@career_garden_state_v1";
@@ -21,6 +22,9 @@ export interface GameState {
   earnedBadges: string[];
   dailyActionsCompleted: string[];
   dailyActionsDate: string | null;
+  streakFreezes: number;
+  xpBoosts: number;
+  xpBoostExpiresAt: number | null;
 }
 
 const DEFAULT_STATE: GameState = {
@@ -32,6 +36,9 @@ const DEFAULT_STATE: GameState = {
   earnedBadges: [],
   dailyActionsCompleted: [],
   dailyActionsDate: null,
+  streakFreezes: 0,
+  xpBoosts: 0,
+  xpBoostExpiresAt: null,
 };
 
 interface GameContextType {
@@ -45,6 +52,8 @@ interface GameContextType {
   getModuleProgress: (moduleId: string) => number;
   getTodayCompletedActions: () => string[];
   todayActions: DailyAction[];
+  activateXPBoost: () => Promise<boolean>;
+  isXPBoostActive: () => boolean;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -84,13 +93,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed: GameState = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
         const today = new Date().toDateString();
         if (parsed.dailyActionsDate !== today) {
           parsed.dailyActionsCompleted = [];
           parsed.dailyActionsDate = today;
         }
-        setState(parsed);
+        const migrated: GameState = {
+          ...DEFAULT_STATE,
+          ...parsed,
+        };
+        setState(migrated);
       }
     } catch (e) {
       // ignore
@@ -110,14 +123,27 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   function updateStreak(currentState: GameState): GameState {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
+
     if (currentState.lastActiveDate === today) {
       return currentState;
     }
-    let newStreak = 1;
+
     if (currentState.lastActiveDate === yesterday) {
-      newStreak = currentState.streak + 1;
+      return { ...currentState, streak: currentState.streak + 1, lastActiveDate: today };
     }
-    return { ...currentState, streak: newStreak, lastActiveDate: today };
+
+    if (currentState.lastActiveDate !== null) {
+      if (currentState.streakFreezes > 0) {
+        return {
+          ...currentState,
+          streak: currentState.streak,
+          lastActiveDate: today,
+          streakFreezes: currentState.streakFreezes - 1,
+        };
+      }
+    }
+
+    return { ...currentState, streak: 1, lastActiveDate: today };
   }
 
   function checkBadges(
@@ -159,13 +185,47 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return newBadges;
   }
 
+  function checkMilestonePowerUps(
+    prevBadgeCount: number,
+    newBadgeCount: number,
+    prevLessonCount: number,
+    newLessonCount: number,
+    currentFreezes: number,
+    currentBoosts: number
+  ): { streakFreezes: number; xpBoosts: number } {
+    let streakFreezes = currentFreezes;
+    let xpBoosts = currentBoosts;
+
+    const prevFreezeThresholds = Math.floor(prevBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
+    const newFreezeThresholds = Math.floor(newBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
+    streakFreezes += newFreezeThresholds - prevFreezeThresholds;
+
+    const prevBoostThresholds = Math.floor(prevLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
+    const newBoostThresholds = Math.floor(newLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
+    xpBoosts += newBoostThresholds - prevBoostThresholds;
+
+    return { streakFreezes, xpBoosts };
+  }
+
+  function getXPMultiplier(currentState: GameState): number {
+    if (
+      currentState.xpBoostExpiresAt !== null &&
+      Date.now() < currentState.xpBoostExpiresAt
+    ) {
+      return 2;
+    }
+    return 1;
+  }
+
   const completeLesson = useCallback(async (lessonId: string, moduleId: string): Promise<{ leveledUp: boolean }> => {
     const current = stateRef.current;
     if (current.completedLessons.includes(lessonId)) return { leveledUp: false };
 
     const mod = MODULES.find((m) => m.id === moduleId);
     const lesson = mod?.lessons.find((l) => l.id === lessonId);
-    const xpGain = lesson?.xp ?? 50;
+    const baseXP = lesson?.xp ?? 50;
+    const multiplier = getXPMultiplier(current);
+    const xpGain = baseXP * multiplier;
 
     const newCompleted = [...current.completedLessons, lessonId];
     const newXP = current.xp + xpGain;
@@ -185,12 +245,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const finalLevel = getLevelFromXP(finalXP);
     const leveledUp = finalLevel > current.level;
 
+    const { streakFreezes, xpBoosts } = checkMilestonePowerUps(
+      current.earnedBadges.length,
+      newBadges.length,
+      current.completedLessons.length,
+      newCompleted.length,
+      withStreak.streakFreezes,
+      withStreak.xpBoosts
+    );
+
     const newState: GameState = {
       ...withStreak,
       xp: finalXP,
       level: finalLevel,
       completedLessons: newCompleted,
       earnedBadges: newBadges,
+      streakFreezes,
+      xpBoosts,
     };
 
     setState(newState);
@@ -228,6 +299,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const finalLevel = getLevelFromXP(finalXP);
     const leveledUp = finalLevel > current.level;
 
+    const { streakFreezes, xpBoosts } = checkMilestonePowerUps(
+      current.earnedBadges.length,
+      newBadges.length,
+      current.completedLessons.length,
+      current.completedLessons.length,
+      withStreak.streakFreezes,
+      withStreak.xpBoosts
+    );
+
     const newState: GameState = {
       ...withStreak,
       xp: finalXP,
@@ -235,6 +315,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dailyActionsCompleted: newCompleted,
       dailyActionsDate: today,
       earnedBadges: newBadges,
+      streakFreezes,
+      xpBoosts,
     };
 
     setState(newState);
@@ -243,6 +325,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (leveledUp) {
       setLevelUpTrigger((t) => t + 1);
     }
+  }, []);
+
+  const activateXPBoost = useCallback(async (): Promise<boolean> => {
+    const current = stateRef.current;
+    if (current.xpBoosts <= 0) return false;
+    if (current.xpBoostExpiresAt !== null && Date.now() < current.xpBoostExpiresAt) return false;
+
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    const newState: GameState = {
+      ...current,
+      xpBoosts: current.xpBoosts - 1,
+      xpBoostExpiresAt: expiresAt,
+    };
+
+    setState(newState);
+    await saveState(newState);
+    return true;
+  }, []);
+
+  const isXPBoostActive = useCallback((): boolean => {
+    const current = stateRef.current;
+    return (
+      current.xpBoostExpiresAt !== null &&
+      Date.now() < current.xpBoostExpiresAt
+    );
   }, []);
 
   const isLessonCompleted = useCallback(
@@ -285,6 +392,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         getModuleProgress,
         getTodayCompletedActions,
         todayActions,
+        activateXPBoost,
+        isXPBoostActive,
       }}
     >
       {children}

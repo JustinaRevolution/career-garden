@@ -18,12 +18,12 @@ import { DailyActionItem } from "@/components/DailyActionItem";
 import { XPBar } from "@/components/XPBar";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
-import { getGardenLevel } from "@/data/content";
+import { getGardenLevel, POWER_UP_MILESTONES } from "@/data/content";
 
 export default function GardenScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { state, completeDailyAction, todayActions } = useGame();
+  const { state, completeDailyAction, todayActions, activateXPBoost, isXPBoostActive } = useGame();
   const gardenLevel = getGardenLevel(state.xp);
   const [burstTrigger, setBurstTrigger] = useState(0);
   const [sharing, setSharing] = useState(false);
@@ -43,6 +43,21 @@ export default function GardenScreen() {
   ];
   const gardenName = gardenNames[Math.min(gardenLevel - 1, gardenNames.length - 1)];
 
+  const boostActive = isXPBoostActive();
+
+  const boostExpiresIn = (() => {
+    if (!boostActive || state.xpBoostExpiresAt === null) return null;
+    const msLeft = state.xpBoostExpiresAt - Date.now();
+    const hoursLeft = Math.ceil(msLeft / (1000 * 60 * 60));
+    return hoursLeft;
+  })();
+
+  const nextFreezeAt = POWER_UP_MILESTONES.badgesPerStreakFreeze;
+  const badgesUntilFreeze = nextFreezeAt - (state.earnedBadges.length % nextFreezeAt);
+
+  const nextBoostAt = POWER_UP_MILESTONES.lessonsPerXPBoost;
+  const lessonsUntilBoost = nextBoostAt - (state.completedLessons.length % nextBoostAt);
+
   const handleDailyAction = useCallback(
     (actionId: string) => {
       completeDailyAction(actionId);
@@ -50,6 +65,36 @@ export default function GardenScreen() {
     },
     [completeDailyAction]
   );
+
+  const handleActivateBoost = useCallback(async () => {
+    if (boostActive) {
+      Alert.alert(
+        "Boost Already Active",
+        `Your 2x XP Boost is already running! It expires in ${boostExpiresIn}h.`
+      );
+      return;
+    }
+    if (state.xpBoosts <= 0) {
+      Alert.alert(
+        "No XP Boosters",
+        `Complete ${lessonsUntilBoost} more lesson${lessonsUntilBoost !== 1 ? "s" : ""} to earn one.`
+      );
+      return;
+    }
+    Alert.alert(
+      "Activate 2x XP Boost?",
+      "This doubles all XP earned for the next 24 hours.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Activate!",
+          onPress: async () => {
+            await activateXPBoost();
+          },
+        },
+      ]
+    );
+  }, [boostActive, boostExpiresIn, state.xpBoosts, lessonsUntilBoost, activateXPBoost]);
 
   const handleShare = useCallback(async () => {
     if (Platform.OS === "web") {
@@ -184,6 +229,74 @@ export default function GardenScreen() {
           </View>
         </View>
       )}
+
+      <View style={styles.powerUpSection}>
+        <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+          Power-Ups
+        </Text>
+        <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>
+          Earn by completing lessons & badges
+        </Text>
+
+        <View style={styles.powerUpRow}>
+          <View
+            style={[
+              styles.powerUpCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={styles.powerUpEmoji}>🧊</Text>
+            <Text style={[styles.powerUpName, { color: colors.foreground }]}>
+              Streak Freeze
+            </Text>
+            <Text style={[styles.powerUpCount, { color: colors.primary }]}>
+              ×{state.streakFreezes}
+            </Text>
+            <Text style={[styles.powerUpHint, { color: colors.mutedForeground }]}>
+              {state.streakFreezes > 0
+                ? "Auto-applies if you miss a day"
+                : `${badgesUntilFreeze} badge${badgesUntilFreeze !== 1 ? "s" : ""} to earn one`}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleActivateBoost}
+            activeOpacity={0.8}
+            style={[
+              styles.powerUpCard,
+              {
+                backgroundColor: boostActive ? "#FFF3D6" : colors.card,
+                borderColor: boostActive ? "#F5A54A" : colors.border,
+              },
+            ]}
+          >
+            <Text style={styles.powerUpEmoji}>⚡</Text>
+            <Text
+              style={[
+                styles.powerUpName,
+                { color: boostActive ? "#D4840A" : colors.foreground },
+              ]}
+            >
+              2x XP Boost
+            </Text>
+            <Text
+              style={[
+                styles.powerUpCount,
+                { color: boostActive ? "#D4840A" : colors.xpGold },
+              ]}
+            >
+              {boostActive ? "ACTIVE" : `×${state.xpBoosts}`}
+            </Text>
+            <Text style={[styles.powerUpHint, { color: colors.mutedForeground }]}>
+              {boostActive
+                ? `Expires in ${boostExpiresIn}h`
+                : state.xpBoosts > 0
+                ? "Tap to activate for 24h"
+                : `${lessonsUntilBoost} lesson${lessonsUntilBoost !== 1 ? "s" : ""} to earn one`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ScrollView>
     </View>
   );
@@ -221,6 +334,40 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
   },
   xpSection: {},
+  powerUpSection: { gap: 4 },
+  powerUpRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  powerUpCard: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+  },
+  powerUpEmoji: {
+    fontSize: 28,
+    marginBottom: 2,
+  },
+  powerUpName: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+  powerUpCount: {
+    fontSize: 20,
+    fontFamily: "Inter_700Bold",
+  },
+  powerUpHint: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 15,
+  },
   dailySection: { gap: 4 },
   sectionTitle: {
     fontSize: 18,

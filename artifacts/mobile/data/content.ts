@@ -670,6 +670,11 @@ export const BADGES: Badge[] = [
   },
 ];
 
+export const POWER_UP_MILESTONES = {
+  badgesPerStreakFreeze: 5,
+  lessonsPerXPBoost: 10,
+} as const;
+
 export const DAILY_ACTIONS: DailyAction[] = [
   { id: "apply", text: "Apply to 1 job that genuinely excites you", xp: 25 },
   { id: "connect", text: "Send 1 LinkedIn connection request", xp: 25 },
