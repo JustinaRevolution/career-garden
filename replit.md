@@ -1,45 +1,75 @@
-# [Project name]
+# Career Garden
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A gamified Expo mobile app that teaches effective US job searching in 2026. Inspired by Zen Koi — users grow an animated koi pond garden as they complete learning modules, earn XP/badges, and check off daily ritual actions.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+```bash
+pnpm --filter @workspace/mobile dev   # Start Expo dev server
+```
+
+No backend — all state via AsyncStorage. No env vars required for the mobile app.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Expo SDK ~54, expo-router ~6.0 (file-based routing)
+- React Native 0.81.5, react-native-reanimated ~4.1.1
+- react-native-svg 15.12.1 (ProgressRing)
+- expo-linear-gradient ~15.0.8 (GardenScene background)
+- @react-native-async-storage/async-storage 2.2.0
+- expo-haptics, @expo/vector-icons (Ionicons)
+- Inter font via @expo-google-fonts/inter
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+```
+artifacts/mobile/
+  app/(tabs)/index.tsx       Garden screen (home + daily ritual)
+  app/(tabs)/learn.tsx       Module list
+  app/(tabs)/badges.tsx      Badges grid
+  app/module/[id].tsx        Module detail + lesson list
+  app/lesson.tsx             Lesson reader (paged FlatList)
+  app/_layout.tsx            Root layout with all providers
+  context/GameContext.tsx    All game state (AsyncStorage-backed)
+  data/content.ts            8 modules × 4 lessons, 12 badges, 10 daily actions
+  components/GardenScene.tsx Animated koi pond (Reanimated + LinearGradient)
+  components/ProgressRing.tsx SVG circular progress ring
+  components/ModuleCard.tsx, BadgeItem.tsx, DailyActionItem.tsx, XPBar.tsx
+  constants/colors.ts        Zen garden dark/light palette
+```
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **No backend**: Pure frontend with AsyncStorage for all persistence (`@career_garden_state_v1` key)
+- **Tab routing**: NativeTabs (liquid glass) on iOS 26+, ClassicTabs with BlurView on other platforms
+- **Lesson navigation**: `/module/:id` → `/lesson?moduleId=X&lessonId=Y` (flat params, not nested dynamic)
+- **Garden levels 1-7**: Computed from XP; each level adds animated garden elements (koi, lotus, lantern, bamboo)
+- **Deterministic daily actions**: 3 actions seeded by `new Date().toDateString()` — consistent per day
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- 8 job search modules (Resume, LinkedIn, Networking, Search, AI, Interview, Negotiation, Resilience)
+- 4 lessons per module (32 total), each with 3-4 content pages + key takeaway + actionable tip
+- 12 collectible badges (module completion + streak + milestones)
+- Daily ritual: 3 random daily actions (seeded deterministically by date), 25 XP each
+- Animated koi pond garden that grows from bare water → full zen garden as XP is earned
+- 20-level XP progression system
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Zen dark aesthetic: deep teal backgrounds (#0F1E1B), warm amber accents (#F5A54A), jade green primary (#7BC4A0)
+- Game-feel UI inspired by Zen Koi app
+- No backend — AsyncStorage only
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Don't restart the expo workflow for code changes (HMR handles it); only restart for dependency/Metro changes
+- Tab layout tries `isLiquidGlassAvailable()` first, falls back to ClassicTabs with BlurView
+- `lesson.tsx` is at root (not inside a directory) to avoid nested dynamic route naming issues in Stack.Screen
+- XP levels array is 0-indexed (index = level - 1)
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Expo skill: `.local/skills/expo/SKILL.md`
+- Tabs reference: `.local/skills/expo/references/tabs.md` (NativeTabs + ClassicTabs patterns)
+- react-native-svg docs: https://github.com/software-mansion/react-native-svg
