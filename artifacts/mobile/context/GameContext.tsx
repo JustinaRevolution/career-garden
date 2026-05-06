@@ -156,7 +156,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       withStreak.streak
     );
 
-    const badgeXP = (newBadges.length - current.earnedBadges.length) * 100;
+    const newlyEarnedIds = newBadges.filter((id) => !current.earnedBadges.includes(id));
+    const badgeXP = newlyEarnedIds.reduce((sum, id) => {
+      const badge = BADGES.find((b) => b.id === id);
+      return sum + (badge?.xpReward ?? 0);
+    }, 0);
     const finalXP = newXP + badgeXP;
     const finalLevel = getLevelFromXP(finalXP);
 
@@ -175,9 +179,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const completeDailyAction = useCallback(async (actionId: string) => {
     const current = stateRef.current;
     const today = new Date().toDateString();
-    if (current.dailyActionsCompleted.includes(actionId)) return;
 
-    const newCompleted = [...current.dailyActionsCompleted, actionId];
+    const alreadyCompleted =
+      current.dailyActionsDate === today &&
+      current.dailyActionsCompleted.includes(actionId);
+    if (alreadyCompleted) return;
+
+    const baseCompleted =
+      current.dailyActionsDate === today ? current.dailyActionsCompleted : [];
+    const newCompleted = [...baseCompleted, actionId];
     const newXP = current.xp + 25;
     const newLevel = getLevelFromXP(newXP);
     const withStreak = updateStreak(current);
