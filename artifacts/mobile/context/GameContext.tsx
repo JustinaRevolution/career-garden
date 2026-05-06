@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 
 import {
   BADGES,
@@ -54,6 +55,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadState();
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        const today = new Date().toDateString();
+        if (stateRef.current.dailyActionsDate !== today) {
+          const reset: GameState = {
+            ...stateRef.current,
+            dailyActionsCompleted: [],
+            dailyActionsDate: today,
+          };
+          setState(reset);
+          saveState(reset);
+        }
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const stateRef = useRef(state);
@@ -188,15 +207,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const baseCompleted =
       current.dailyActionsDate === today ? current.dailyActionsCompleted : [];
     const newCompleted = [...baseCompleted, actionId];
-    const newXP = current.xp + 25;
-    const newLevel = getLevelFromXP(newXP);
+    const baseXP = current.xp + 25;
     const withStreak = updateStreak(current);
     const newBadges = checkBadges(current, current.completedLessons, withStreak.streak);
 
+    const newlyEarnedIds = newBadges.filter((id) => !current.earnedBadges.includes(id));
+    const badgeXP = newlyEarnedIds.reduce((sum, id) => {
+      const badge = BADGES.find((b) => b.id === id);
+      return sum + (badge?.xpReward ?? 0);
+    }, 0);
+    const finalXP = baseXP + badgeXP;
+    const finalLevel = getLevelFromXP(finalXP);
+
     const newState: GameState = {
       ...withStreak,
-      xp: newXP,
-      level: newLevel,
+      xp: finalXP,
+      level: finalLevel,
       dailyActionsCompleted: newCompleted,
       dailyActionsDate: today,
       earnedBadges: newBadges,
