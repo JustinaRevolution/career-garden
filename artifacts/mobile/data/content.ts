@@ -1,3 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
 export interface Lesson {
   id: string;
   title: string;
@@ -12,7 +17,7 @@ export interface Module {
   id: string;
   title: string;
   subtitle: string;
-  icon: string;
+  icon: IoniconName;
   color: string;
   lessons: Lesson[];
   badgeId: string;
@@ -22,7 +27,7 @@ export interface Badge {
   id: string;
   title: string;
   description: string;
-  icon: string;
+  icon: IoniconName;
   color: string;
   xpReward: number;
 }

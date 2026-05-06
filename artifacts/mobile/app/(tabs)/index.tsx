@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -20,6 +20,7 @@ export default function GardenScreen() {
   const insets = useSafeAreaInsets();
   const { state, completeDailyAction, todayActions } = useGame();
   const gardenLevel = getGardenLevel(state.xp);
+  const [burstTrigger, setBurstTrigger] = useState(0);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
@@ -34,6 +35,14 @@ export default function GardenScreen() {
     "Full Garden",
   ];
   const gardenName = gardenNames[Math.min(gardenLevel - 1, gardenNames.length - 1)];
+
+  const handleDailyAction = useCallback(
+    (actionId: string) => {
+      completeDailyAction(actionId);
+      setBurstTrigger((n) => n + 1);
+    },
+    [completeDailyAction]
+  );
 
   return (
     <ScrollView
@@ -57,7 +66,7 @@ export default function GardenScreen() {
         <XPBar xp={state.xp} streak={state.streak} compact />
       </View>
 
-      <GardenScene gardenLevel={gardenLevel} height={220} />
+      <GardenScene gardenLevel={gardenLevel} height={220} burstTrigger={burstTrigger} />
 
       <View style={styles.gardenHint}>
         <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
@@ -80,13 +89,13 @@ export default function GardenScreen() {
             key={action.id}
             action={action}
             isCompleted={state.dailyActionsCompleted.includes(action.id)}
-            onComplete={completeDailyAction}
+            onComplete={handleDailyAction}
           />
         ))}
       </View>
 
       {state.completedLessons.length > 0 && (
-        <View style={[styles.statsRow]}>
+        <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.statNumber, { color: colors.primary }]}>
               {state.completedLessons.length}

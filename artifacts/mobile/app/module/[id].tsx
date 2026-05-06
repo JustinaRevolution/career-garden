@@ -58,7 +58,7 @@ export default function ModuleDetailScreen() {
 
         <View style={styles.heroContent}>
           <View style={[styles.heroIcon, { backgroundColor: module.color + "33" }]}>
-            <Ionicons name={module.icon as any} size={36} color={module.color} />
+            <Ionicons name={module.icon} size={36} color={module.color} />
           </View>
 
           <Text style={[styles.heroTitle, { color: colors.foreground }]}>

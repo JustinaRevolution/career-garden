@@ -32,7 +32,7 @@ export function BadgeItem({ badge, earned }: Props) {
         ]}
       >
         <Ionicons
-          name={badge.icon as any}
+          name={badge.icon}
           size={28}
           color={earned ? badge.color : colors.mutedForeground}
         />

@@ -65,6 +65,36 @@ function WaterRipple({
   );
 }
 
+function BurstRipple({ trigger }: { trigger: number }) {
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (trigger === 0) return;
+    scale.value = 0.1;
+    opacity.value = 0.9;
+    scale.value = withTiming(1.8, { duration: 900, easing: Easing.out(Easing.ease) });
+    opacity.value = withSequence(
+      withTiming(0.9, { duration: 100 }),
+      withTiming(0, { duration: 800 })
+    );
+  }, [trigger]);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.burst,
+        style,
+      ]}
+    />
+  );
+}
+
 function KoiFish({
   x,
   y,
@@ -82,6 +112,7 @@ function KoiFish({
 }) {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
+  const flipX = useSharedValue(1);
 
   useEffect(() => {
     tx.value = withDelay(
@@ -106,10 +137,27 @@ function KoiFish({
         false
       )
     );
+    flipX.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 4200 }),
+          withTiming(-1, { duration: 100 }),
+          withTiming(-1, { duration: 4200 }),
+          withTiming(1, { duration: 100 })
+        ),
+        -1,
+        false
+      )
+    );
   }, []);
 
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }],
+    transform: [
+      { translateX: tx.value },
+      { translateY: ty.value },
+      { scaleX: flipX.value },
+    ],
   }));
 
   return (
@@ -175,10 +223,12 @@ function LotusFlower({ x, y }: { x: number; y: number }) {
     transform: [{ scale: pulse.value }],
   }));
 
+  const petalAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+
   return (
     <Animated.View style={[{ position: "absolute", left: x - 18, top: y - 18 }, style]}>
       <View style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
-        {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
+        {petalAngles.map((angle, i) => (
           <View
             key={i}
             style={{
@@ -188,10 +238,7 @@ function LotusFlower({ x, y }: { x: number; y: number }) {
               borderRadius: 7,
               backgroundColor: "#E87B9E",
               opacity: 0.85,
-              transform: [
-                { rotate: `${angle}deg` },
-                { translateY: -10 },
-              ],
+              transform: [{ rotate: `${angle}deg` }, { translateY: -10 }],
             }}
           />
         ))}
@@ -252,9 +299,10 @@ function StoneLantern({ x, y }: { x: number; y: number }) {
 }
 
 function BambooStalk({ x, height, color }: { x: number; height: number; color: string }) {
+  const segmentCount = Math.floor(height / 16);
   return (
     <View style={{ position: "absolute", left: x, top: 0 }}>
-      {Array.from({ length: Math.floor(height / 16) }).map((_, i) => (
+      {Array.from({ length: segmentCount }).map((_, i) => (
         <View key={i}>
           <View style={{ width: 8, height: 14, backgroundColor: color, borderRadius: 1 }} />
           <View style={{ width: 8, height: 2, backgroundColor: "#2A5020", borderRadius: 1 }} />
@@ -302,9 +350,10 @@ function FadeInView({
 interface Props {
   gardenLevel: number;
   height?: number;
+  burstTrigger?: number;
 }
 
-export function GardenScene({ gardenLevel, height = 220 }: Props) {
+export function GardenScene({ gardenLevel, height = 220, burstTrigger = 0 }: Props) {
   return (
     <View style={[styles.container, { height }]}>
       <LinearGradient
@@ -316,6 +365,10 @@ export function GardenScene({ gardenLevel, height = 220 }: Props) {
         <WaterRipple x={90} y={120} size={80} delay={0} color="#2A6060" />
         <WaterRipple x={230} y={80} size={70} delay={1200} color="#2A6060" />
         <WaterRipple x={160} y={170} size={90} delay={2400} color="#2A6060" />
+      </View>
+
+      <View style={[StyleSheet.absoluteFill, styles.burstCenter]}>
+        <BurstRipple trigger={burstTrigger} />
       </View>
 
       <FadeInView visible={gardenLevel >= 2} delay={200}>
@@ -365,5 +418,16 @@ const styles = StyleSheet.create({
   ripple: {
     position: "absolute",
     borderWidth: 1.5,
+  },
+  burstCenter: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  burst: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: "#7BC4A0",
   },
 });

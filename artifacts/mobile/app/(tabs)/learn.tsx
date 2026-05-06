@@ -61,7 +61,9 @@ export default function LearnScreen() {
           key={module.id}
           module={module}
           progress={getModuleProgress(module.id)}
-          onPress={() => router.push(`/module/${module.id}` as any)}
+          onPress={() =>
+            router.push({ pathname: "/module/[id]", params: { id: module.id } })
+          }
         />
       ))}
     </ScrollView>

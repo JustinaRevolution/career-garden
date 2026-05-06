@@ -99,14 +99,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return { ...currentState, streak: newStreak, lastActiveDate: today };
   }
 
-  function checkBadges(currentState: GameState, completedLessons: string[]): string[] {
+  function checkBadges(
+    currentState: GameState,
+    completedLessons: string[],
+    streak: number
+  ): string[] {
     const newBadges = [...currentState.earnedBadges];
     const addBadge = (id: string) => {
       if (!newBadges.includes(id)) newBadges.push(id);
     };
 
-    if (completedLessons.length >= 1 && !newBadges.includes("badge-first-bloom")) {
+    if (completedLessons.length >= 1) {
       addBadge("badge-first-bloom");
+    }
+
+    if (streak >= 7) {
+      addBadge("badge-streak-7");
     }
 
     let allModulesStarted = true;
@@ -141,8 +149,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const newCompleted = [...current.completedLessons, lessonId];
     const newXP = current.xp + xpGain;
     const newLevel = getLevelFromXP(newXP);
-    const newBadges = checkBadges({ ...current, completedLessons: newCompleted }, newCompleted);
     const withStreak = updateStreak(current);
+    const newBadges = checkBadges(
+      { ...current, completedLessons: newCompleted },
+      newCompleted,
+      withStreak.streak
+    );
 
     const badgeXP = (newBadges.length - current.earnedBadges.length) * 100;
     const finalXP = newXP + badgeXP;
@@ -169,6 +181,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const newXP = current.xp + 25;
     const newLevel = getLevelFromXP(newXP);
     const withStreak = updateStreak(current);
+    const newBadges = checkBadges(current, current.completedLessons, withStreak.streak);
 
     const newState: GameState = {
       ...withStreak,
@@ -176,6 +189,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       level: newLevel,
       dailyActionsCompleted: newCompleted,
       dailyActionsDate: today,
+      earnedBadges: newBadges,
     };
 
     setState(newState);

@@ -5,6 +5,8 @@ import React, { useCallback, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -154,6 +156,14 @@ export default function LessonScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const handleScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+      setCurrentIndex(idx);
+    },
+    []
+  );
+
   function goNext() {
     if (currentIndex < totalPages - 1) {
       listRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
@@ -166,9 +176,13 @@ export default function LessonScreen() {
     }
   }
 
-  const pages = [
-    ...contentPages.map((text, i) => ({ type: "content" as const, text, index: i })),
-    { type: "takeaway" as const, index: contentPages.length },
+  type PageItem =
+    | { type: "content"; text: string; index: number }
+    | { type: "takeaway"; index: number };
+
+  const pages: PageItem[] = [
+    ...contentPages.map<PageItem>((text, i) => ({ type: "content", text, index: i })),
+    { type: "takeaway", index: contentPages.length },
   ];
 
   return (
@@ -212,11 +226,12 @@ export default function LessonScreen() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        scrollEnabled={false}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setCurrentIndex(idx);
-        }}
+        onMomentumScrollEnd={handleScroll}
+        getItemLayout={(_, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
         renderItem={({ item }) => {
           if (item.type === "content") {
             return (

@@ -25,7 +25,7 @@ export function ModuleCard({ module, progress, onPress }: Props) {
     >
       <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={[styles.iconWrapper, { backgroundColor: module.color + "22" }]}>
-          <Ionicons name={module.icon as any} size={24} color={module.color} />
+          <Ionicons name={module.icon} size={24} color={module.color} />
         </View>
 
         <View style={styles.content}>
