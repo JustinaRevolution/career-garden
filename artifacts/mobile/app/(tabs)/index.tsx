@@ -93,6 +93,7 @@ export default function GardenScreen() {
   }, [state.streak, gardenRef]);
 
   return (
+    <View style={styles.rootContainer}>
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
       contentContainerStyle={[
@@ -127,7 +128,13 @@ export default function GardenScreen() {
         <XPBar xp={state.xp} streak={state.streak} compact />
       </View>
 
-      <GardenScene ref={gardenRef} gardenLevel={gardenLevel} height={220} burstTrigger={burstTrigger} />
+      <GardenScene
+        ref={gardenRef}
+        gardenLevel={gardenLevel}
+        height={220}
+        burstTrigger={burstTrigger}
+        showBlossoms={state.level >= 10}
+      />
 
       <View style={styles.gardenHint}>
         <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
@@ -178,10 +185,12 @@ export default function GardenScreen() {
         </View>
       )}
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: { flex: 1 },
   root: { flex: 1 },
   content: { paddingHorizontal: 20, gap: 18 },
   header: {

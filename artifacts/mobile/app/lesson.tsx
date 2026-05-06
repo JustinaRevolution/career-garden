@@ -25,6 +25,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { MODULES } from "@/data/content";
+import { ConfettiOverlay } from "@/components/ConfettiOverlay";
+import { LevelUpOverlay } from "@/components/LevelUpOverlay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -60,7 +62,7 @@ function TakeawayPage({
   keyTakeaway: string;
   tip: string;
   moduleColor: string;
-  onComplete: () => void;
+  onComplete: () => Promise<void>;
   isAlreadyCompleted: boolean;
 }) {
   const colors = useColors();
@@ -81,7 +83,7 @@ function TakeawayPage({
     );
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setDone(true);
-    onComplete();
+    await onComplete();
     setTimeout(() => router.back(), 900);
   }
 
@@ -130,9 +132,11 @@ export default function LessonScreen() {
   }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { completeLesson, isLessonCompleted } = useGame();
+  const { completeLesson, isLessonCompleted, state } = useGame();
   const listRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
+  const [levelUpTrigger, setLevelUpTrigger] = useState(0);
 
   const module = MODULES.find((m) => m.id === moduleId);
   const lesson = module?.lessons.find((l) => l.id === lessonId);
@@ -149,8 +153,12 @@ export default function LessonScreen() {
   const contentPages = lesson.content;
   const totalPages = contentPages.length + 1;
 
-  const handleComplete = useCallback(() => {
-    completeLesson(lesson.id, module.id);
+  const handleComplete = useCallback(async () => {
+    const { leveledUp } = await completeLesson(lesson.id, module.id);
+    setConfettiTrigger((t) => t + 1);
+    if (leveledUp) {
+      setLevelUpTrigger((t) => t + 1);
+    }
   }, [lesson.id, module.id]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -187,6 +195,8 @@ export default function LessonScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <ConfettiOverlay trigger={confettiTrigger} />
+      <LevelUpOverlay trigger={levelUpTrigger} level={state.level} />
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color={colors.foreground} />

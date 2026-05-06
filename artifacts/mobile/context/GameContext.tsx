@@ -37,7 +37,8 @@ const DEFAULT_STATE: GameState = {
 interface GameContextType {
   state: GameState;
   isLoaded: boolean;
-  completeLesson: (lessonId: string, moduleId: string) => Promise<void>;
+  levelUpTrigger: number;
+  completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean }>;
   completeDailyAction: (actionId: string) => Promise<void>;
   isLessonCompleted: (lessonId: string) => boolean;
   isBadgeEarned: (badgeId: string) => boolean;
@@ -51,6 +52,7 @@ const GameContext = createContext<GameContextType | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [levelUpTrigger, setLevelUpTrigger] = useState(0);
   const todayActions = getTodayActions();
 
   useEffect(() => {
@@ -157,9 +159,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return newBadges;
   }
 
-  const completeLesson = useCallback(async (lessonId: string, moduleId: string) => {
+  const completeLesson = useCallback(async (lessonId: string, moduleId: string): Promise<{ leveledUp: boolean }> => {
     const current = stateRef.current;
-    if (current.completedLessons.includes(lessonId)) return;
+    if (current.completedLessons.includes(lessonId)) return { leveledUp: false };
 
     const mod = MODULES.find((m) => m.id === moduleId);
     const lesson = mod?.lessons.find((l) => l.id === lessonId);
@@ -167,7 +169,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     const newCompleted = [...current.completedLessons, lessonId];
     const newXP = current.xp + xpGain;
-    const newLevel = getLevelFromXP(newXP);
     const withStreak = updateStreak(current);
     const newBadges = checkBadges(
       { ...current, completedLessons: newCompleted },
@@ -182,6 +183,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, 0);
     const finalXP = newXP + badgeXP;
     const finalLevel = getLevelFromXP(finalXP);
+    const leveledUp = finalLevel > current.level;
 
     const newState: GameState = {
       ...withStreak,
@@ -193,6 +195,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     setState(newState);
     await saveState(newState);
+
+    if (leveledUp) {
+      setLevelUpTrigger((t) => t + 1);
+    }
+
+    return { leveledUp };
   }, []);
 
   const completeDailyAction = useCallback(async (actionId: string) => {
@@ -218,6 +226,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, 0);
     const finalXP = baseXP + badgeXP;
     const finalLevel = getLevelFromXP(finalXP);
+    const leveledUp = finalLevel > current.level;
 
     const newState: GameState = {
       ...withStreak,
@@ -230,6 +239,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     setState(newState);
     await saveState(newState);
+
+    if (leveledUp) {
+      setLevelUpTrigger((t) => t + 1);
+    }
   }, []);
 
   const isLessonCompleted = useCallback(
@@ -264,6 +277,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       value={{
         state,
         isLoaded,
+        levelUpTrigger,
         completeLesson,
         completeDailyAction,
         isLessonCompleted,

@@ -298,6 +298,83 @@ function StoneLantern({ x, y }: { x: number; y: number }) {
   );
 }
 
+function CherryBlossomPetal({
+  startX,
+  delay,
+  gardenHeight,
+}: {
+  startX: number;
+  delay: number;
+  gardenHeight: number;
+}) {
+  const ty = useSharedValue(-16);
+  const swayX = useSharedValue(0);
+  const rotate = useSharedValue(0);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    const duration = 4800 + (delay % 1800);
+    ty.value = withDelay(
+      delay,
+      withRepeat(
+        withTiming(gardenHeight + 20, { duration, easing: Easing.linear }),
+        -1,
+        false
+      )
+    );
+    swayX.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(14, { duration: 1600, easing: Easing.inOut(Easing.ease) }),
+          withTiming(-14, { duration: 1600, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
+      )
+    );
+    rotate.value = withDelay(
+      delay,
+      withRepeat(withTiming(360, { duration: 3600 }), -1, false)
+    );
+    opacity.value = withDelay(delay, withRepeat(
+      withSequence(
+        withTiming(0.82, { duration: 500 }),
+        withTiming(0.82, { duration: duration - 900 }),
+        withTiming(0, { duration: 400 })
+      ),
+      -1,
+      false
+    ));
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: swayX.value },
+      { translateY: ty.value },
+      { rotate: `${rotate.value}deg` },
+    ],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          top: 0,
+          left: startX,
+          width: 10,
+          height: 8,
+          borderRadius: 5,
+          backgroundColor: "#F2B0CC",
+        },
+        style,
+      ]}
+    />
+  );
+}
+
 function BambooStalk({ x, height, color }: { x: number; height: number; color: string }) {
   const segmentCount = Math.floor(height / 16);
   return (
@@ -351,10 +428,11 @@ interface Props {
   gardenLevel: number;
   height?: number;
   burstTrigger?: number;
+  showBlossoms?: boolean;
 }
 
 export const GardenScene = React.forwardRef<View, Props>(
-  function GardenScene({ gardenLevel, height = 220, burstTrigger = 0 }, ref) {
+  function GardenScene({ gardenLevel, height = 220, burstTrigger = 0, showBlossoms = false }, ref) {
   return (
     <View ref={ref} style={[styles.container, { height }]}>
       <LinearGradient
@@ -405,6 +483,17 @@ export const GardenScene = React.forwardRef<View, Props>(
         <BambooStalk x={24} height={height * 0.75} color="#2E5820" />
         <BambooStalk x={300} height={height} color="#3A6A2A" />
         <BambooStalk x={316} height={height * 0.6} color="#2E5820" />
+      </FadeInView>
+
+      <FadeInView visible={showBlossoms} delay={0}>
+        <CherryBlossomPetal startX={35} delay={0} gardenHeight={height} />
+        <CherryBlossomPetal startX={90} delay={900} gardenHeight={height} />
+        <CherryBlossomPetal startX={150} delay={1800} gardenHeight={height} />
+        <CherryBlossomPetal startX={210} delay={500} gardenHeight={height} />
+        <CherryBlossomPetal startX={265} delay={1400} gardenHeight={height} />
+        <CherryBlossomPetal startX={310} delay={2200} gardenHeight={height} />
+        <CherryBlossomPetal startX={65} delay={2700} gardenHeight={height} />
+        <CherryBlossomPetal startX={185} delay={3200} gardenHeight={height} />
       </FadeInView>
     </View>
   );
