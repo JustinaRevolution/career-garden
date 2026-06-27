@@ -171,6 +171,8 @@ export default function GardenScreen() {
   }, [canBuyBoost, buyXPBoost]);
 
   const weekStats = getWeekStats(state.dailyLog);
+  const prevWeekStats = getWeekStats(state.dailyLog, 7);
+  const xpDelta = weekStats.xp - prevWeekStats.xp;
   const koiColor = getEquippedKoiColor();
   const bonusKoi = state.applications.length;
 
@@ -178,6 +180,7 @@ export default function GardenScreen() {
     if (!state.goal) return null;
     return Math.ceil((state.goal.targetDate - Date.now()) / 86400000);
   })();
+  const goalOverdue = goalDaysLeft !== null && goalDaysLeft <= 0;
 
   const handleToggleReminder = useCallback(
     async (value: boolean) => {
@@ -331,19 +334,41 @@ export default function GardenScreen() {
 
         {/* Goal Countdown */}
         {state.goal && goalDaysLeft !== null && (
-          <View style={[styles.goalCard, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "33" }]}>
+          <View
+            style={[
+              styles.goalCard,
+              goalOverdue
+                ? { backgroundColor: colors.accent + "14", borderColor: colors.accent + "44" }
+                : { backgroundColor: colors.primary + "12", borderColor: colors.primary + "33" },
+            ]}
+          >
             <View style={styles.goalLeft}>
-              <Text style={[styles.goalLabel, { color: colors.primary }]}>MY GOAL</Text>
+              <Text style={[styles.goalLabel, { color: goalOverdue ? colors.accent : colors.primary }]}>
+                {goalOverdue ? "GOAL DATE PASSED" : "MY GOAL"}
+              </Text>
               <Text style={[styles.goalRole, { color: colors.foreground }]} numberOfLines={1}>
                 {state.goal.role}
               </Text>
+              {goalOverdue && (
+                <Text style={[styles.goalOverdueHint, { color: colors.mutedForeground }]}>
+                  Keep tending, or set a fresh goal
+                </Text>
+              )}
             </View>
             <View style={styles.goalRight}>
-              <Text style={[styles.goalDays, { color: colors.primary }]}>
-                {goalDaysLeft > 0 ? goalDaysLeft : 0}
-              </Text>
+              {goalOverdue ? (
+                <Text style={[styles.goalDays, { color: colors.accent, fontSize: 22 }]}>🌱</Text>
+              ) : (
+                <Text style={[styles.goalDays, { color: colors.primary }]}>{goalDaysLeft}</Text>
+              )}
               <Text style={[styles.goalDaysLabel, { color: colors.mutedForeground }]}>
-                {goalDaysLeft === 1 ? "day left" : "days left"}
+                {goalOverdue
+                  ? goalDaysLeft === 0
+                    ? "due today"
+                    : `${Math.abs(goalDaysLeft)}d ago`
+                  : goalDaysLeft === 1
+                  ? "day left"
+                  : "days left"}
               </Text>
             </View>
             <Pressable onPress={handleClearGoal} hitSlop={8} style={styles.goalClear}>
@@ -363,6 +388,16 @@ export default function GardenScreen() {
               <View style={styles.recapItem}>
                 <Text style={[styles.recapNumber, { color: colors.xpGold }]}>{weekStats.xp}</Text>
                 <Text style={[styles.recapLabel, { color: colors.mutedForeground }]}>XP</Text>
+                {prevWeekStats.xp > 0 && xpDelta !== 0 && (
+                  <Text
+                    style={[
+                      styles.recapDelta,
+                      { color: xpDelta > 0 ? colors.success : colors.mutedForeground },
+                    ]}
+                  >
+                    {xpDelta > 0 ? "▲" : "▼"} {Math.abs(xpDelta)}
+                  </Text>
+                )}
               </View>
               <View style={[styles.recapDivider, { backgroundColor: colors.border }]} />
               <View style={styles.recapItem}>
@@ -800,6 +835,7 @@ const styles = StyleSheet.create({
   goalRight: { alignItems: "center" },
   goalDays: { fontSize: 28, fontFamily: "Inter_700Bold", lineHeight: 32 },
   goalDaysLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  goalOverdueHint: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
   goalClear: { marginLeft: 4 },
   recapCard: {
     flexDirection: "row",
@@ -814,6 +850,7 @@ const styles = StyleSheet.create({
   recapItem: { flex: 1, alignItems: "center", gap: 2 },
   recapNumber: { fontSize: 22, fontFamily: "Inter_700Bold" },
   recapLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  recapDelta: { fontSize: 10, fontFamily: "Inter_700Bold", marginTop: 1 },
   recapDivider: { width: 1, height: 32 },
   cosmeticGrid: {
     flexDirection: "row",

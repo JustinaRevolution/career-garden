@@ -112,10 +112,13 @@ export interface WeekStats {
   activeDays: number;
 }
 
-export function getWeekStats(dailyLog: Record<string, DailyLogEntry>): WeekStats {
+export function getWeekStats(
+  dailyLog: Record<string, DailyLogEntry>,
+  offsetDays = 0
+): WeekStats {
   const stats: WeekStats = { xp: 0, lessons: 0, actions: 0, applications: 0, activeDays: 0 };
   for (let i = 0; i < 7; i++) {
-    const key = new Date(Date.now() - i * 86400000).toDateString();
+    const key = new Date(Date.now() - (i + offsetDays) * 86400000).toDateString();
     const entry = dailyLog[key];
     if (entry) {
       stats.xp += entry.xp;
