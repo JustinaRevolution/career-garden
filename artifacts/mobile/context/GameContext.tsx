@@ -166,7 +166,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           migrated.streakFreezes > 0;
 
         if (freezeAutoApplies) {
-          const log = appendLog(migrated.powerUpLog, { type: "used-freeze", timestamp: Date.now() });
+          const log = appendLog(migrated.powerUpLog, { type: "used-freeze", timestamp: Date.now(), detail: "Auto-applied to save your streak" });
           const withFreeze: GameState = {
             ...migrated,
             lastActiveDate: today,
@@ -244,7 +244,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (currentState.lastActiveDate !== null && currentState.streakFreezes > 0) {
-      const log = appendLog(currentState.powerUpLog, { type: "used-freeze", timestamp: Date.now() });
+      const log = appendLog(currentState.powerUpLog, { type: "used-freeze", timestamp: Date.now(), detail: "Auto-applied to save your streak" });
       return {
         next: {
           ...currentState,
@@ -312,7 +312,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (earnedFreezes > 0) {
       streakFreezes += earnedFreezes;
       for (let i = 0; i < earnedFreezes; i++) {
-        updatedLog = appendLog(updatedLog, { type: "earned-freeze", timestamp: Date.now() });
+        updatedLog = appendLog(updatedLog, { type: "earned-freeze", timestamp: Date.now(), detail: `${newBadgeCount} badge${newBadgeCount !== 1 ? "s" : ""} reached` });
       }
     }
 
@@ -322,7 +322,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (earnedBoosts > 0) {
       xpBoosts += earnedBoosts;
       for (let i = 0; i < earnedBoosts; i++) {
-        updatedLog = appendLog(updatedLog, { type: "earned-boost", timestamp: Date.now() });
+        updatedLog = appendLog(updatedLog, { type: "earned-boost", timestamp: Date.now(), detail: `${newLessonCount} lesson${newLessonCount !== 1 ? "s" : ""} completed` });
       }
     }
 
@@ -468,7 +468,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (current.xpBoosts <= 0) return false;
     if (current.xpBoostExpiresAt !== null && Date.now() < current.xpBoostExpiresAt) return false;
 
-    const log = appendLog(current.powerUpLog, { type: "used-boost", timestamp: Date.now() });
+    const log = appendLog(current.powerUpLog, { type: "used-boost", timestamp: Date.now(), detail: "2x XP active for 24 hours" });
     const newState: GameState = {
       ...current,
       xpBoosts: current.xpBoosts - 1,
@@ -489,7 +489,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const buyStreakFreeze = useCallback(async (): Promise<boolean> => {
     const current = stateRef.current;
     if (current.xp < XP_SHOP.streakFreezePrice) return false;
-    const log = appendLog(current.powerUpLog, { type: "bought-freeze", timestamp: Date.now() });
+    const log = appendLog(current.powerUpLog, { type: "bought-freeze", timestamp: Date.now(), detail: "Purchased from XP Shop" });
     const newState: GameState = {
       ...current,
       xp: current.xp - XP_SHOP.streakFreezePrice,
@@ -504,7 +504,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const buyXPBoost = useCallback(async (): Promise<boolean> => {
     const current = stateRef.current;
     if (current.xp < XP_SHOP.xpBoostPrice) return false;
-    const log = appendLog(current.powerUpLog, { type: "bought-boost", timestamp: Date.now() });
+    const log = appendLog(current.powerUpLog, { type: "bought-boost", timestamp: Date.now(), detail: "Purchased from XP Shop" });
     const newState: GameState = {
       ...current,
       xp: current.xp - XP_SHOP.xpBoostPrice,

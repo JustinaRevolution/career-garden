@@ -639,7 +639,14 @@ export default function GardenScreen() {
                       ]}
                     >
                       <Text style={styles.historyEmoji}>{emoji}</Text>
-                      <Text style={[styles.historyText, { color: colors.foreground }]}>{text}</Text>
+                      <View style={styles.historyBody}>
+                        <Text style={[styles.historyText, { color: colors.foreground }]}>{text}</Text>
+                        {event.detail ? (
+                          <Text style={[styles.historyDetail, { color: colors.mutedForeground }]}>
+                            {event.detail}
+                          </Text>
+                        ) : null}
+                      </View>
                       <Text style={[styles.historyDate, { color: colors.mutedForeground }]}>
                         {formatTime(event.timestamp)}
                       </Text>
@@ -913,7 +920,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   historyEmoji: { fontSize: 18, width: 26 },
-  historyText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
+  historyBody: { flex: 1, gap: 1 },
+  historyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
+  historyDetail: { fontSize: 12, fontFamily: "Inter_400Regular" },
   historyDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
   sheetOverlay: {
     flex: 1,

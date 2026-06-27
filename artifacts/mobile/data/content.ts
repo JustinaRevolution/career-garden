@@ -814,6 +814,7 @@ export type PowerUpEventType =
 export interface PowerUpEvent {
   type: PowerUpEventType;
   timestamp: number;
+  detail?: string;
 }
 
 export const DAILY_ACTIONS: DailyAction[] = [
