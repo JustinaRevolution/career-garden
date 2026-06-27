@@ -121,7 +121,7 @@ interface Props {
 
 export function ConfettiOverlay({ trigger }: Props) {
   return (
-    <View style={styles.container} pointerEvents="none">
+    <View style={[styles.container, { pointerEvents: "none" }]}>
       {PARTICLES.map((data, i) => (
         <Particle key={i} data={data} trigger={trigger} />
       ))}

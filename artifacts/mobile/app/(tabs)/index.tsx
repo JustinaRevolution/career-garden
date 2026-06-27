@@ -75,7 +75,6 @@ export default function GardenScreen() {
   const [badgeTrigger, setBadgeTrigger] = useState(0);
   const [badgeId, setBadgeId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const gardenRef = useRef<View>(null);
   const shareCardRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -239,7 +238,6 @@ export default function GardenScreen() {
 
         {/* Garden */}
         <GardenScene
-          ref={gardenRef}
           gardenLevel={gardenLevel}
           height={220}
           burstTrigger={burstTrigger}
@@ -302,13 +300,13 @@ export default function GardenScreen() {
               onPress={handleActivateBoost}
               activeOpacity={0.8}
               style={[styles.powerUpCard, {
-                backgroundColor: boostActive ? "#FFF3D6" : colors.card,
-                borderColor: boostActive ? "#F5A54A" : colors.border,
+                backgroundColor: boostActive ? colors.accent + "22" : colors.card,
+                borderColor: boostActive ? colors.accent : colors.border,
               }]}
             >
               <Text style={styles.powerUpEmoji}>⚡</Text>
-              <Text style={[styles.powerUpName, { color: boostActive ? "#D4840A" : colors.foreground }]}>2x XP Boost</Text>
-              <Text style={[styles.powerUpCount, { color: boostActive ? "#D4840A" : colors.xpGold }]}>
+              <Text style={[styles.powerUpName, { color: boostActive ? colors.accent : colors.foreground }]}>2x XP Boost</Text>
+              <Text style={[styles.powerUpCount, { color: boostActive ? colors.accent : colors.xpGold }]}>
                 {boostActive ? "ACTIVE" : `×${state.xpBoosts}`}
               </Text>
               <Text style={[styles.powerUpHint, { color: colors.mutedForeground }]}>

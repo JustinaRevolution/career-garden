@@ -66,7 +66,7 @@ export function StreakMilestoneOverlay({ trigger, milestone }: Props) {
   const info = MILESTONE_MESSAGES[milestone] ?? MILESTONE_MESSAGES[3];
 
   return (
-    <View style={styles.overlay} pointerEvents="none">
+    <View style={[styles.overlay, { pointerEvents: "none" }]}>
       <View style={styles.center}>
         <Animated.View style={[styles.ring, ringStyle]} />
         <Animated.View style={[styles.banner, containerStyle]}>

@@ -43,7 +43,7 @@ export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
   if (!badge) return null;
 
   return (
-    <View style={styles.overlay} pointerEvents="none">
+    <View style={[styles.overlay, { pointerEvents: "none" }]}>
       <Animated.View style={[styles.toast, { borderColor: badge.color + "55" }, animStyle]}>
         <View style={[styles.iconCircle, { backgroundColor: badge.color + "22" }]}>
           <Ionicons name={badge.icon} size={28} color={badge.color} />

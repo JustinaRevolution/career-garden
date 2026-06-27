@@ -323,7 +323,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       const baseCompleted = current.dailyActionsDate === today ? current.dailyActionsCompleted : [];
       const newCompleted = [...baseCompleted, actionId];
-      const baseXP = current.xp + 25;
+      const multiplier = getXPMultiplier(current);
+      const baseXP = current.xp + 25 * multiplier;
       const { next: withStreak, freezeUsed } = updateStreak(current);
       const newBadges = checkBadges(current, current.completedLessons, withStreak.streak);
 

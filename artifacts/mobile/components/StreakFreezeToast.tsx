@@ -35,7 +35,7 @@ export function StreakFreezeToast({ trigger }: Props) {
   }));
 
   return (
-    <View style={styles.overlay} pointerEvents="none">
+    <View style={[styles.overlay, { pointerEvents: "none" }]}>
       <Animated.View style={[styles.toast, animStyle]}>
         <Text style={styles.icon}>🧊</Text>
         <View style={styles.textBlock}>

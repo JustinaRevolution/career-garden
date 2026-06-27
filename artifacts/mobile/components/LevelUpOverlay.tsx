@@ -53,7 +53,7 @@ export function LevelUpOverlay({ trigger, level }: Props) {
   }));
 
   return (
-    <View style={styles.overlay} pointerEvents="none">
+    <View style={[styles.overlay, { pointerEvents: "none" }]}>
       <View style={styles.center}>
         <Animated.View style={[styles.ring, ringStyle]} />
         <Animated.View style={[styles.banner, containerStyle]}>
