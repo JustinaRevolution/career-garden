@@ -13,8 +13,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 
+import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
+import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
 import { XPBar } from "@/components/XPBar";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
@@ -23,10 +25,20 @@ import { getGardenLevel, POWER_UP_MILESTONES } from "@/data/content";
 export default function GardenScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { state, completeDailyAction, todayActions, activateXPBoost, isXPBoostActive } = useGame();
+  const {
+    state,
+    completeDailyAction,
+    todayActions,
+    activateXPBoost,
+    isXPBoostActive,
+    streakMilestoneTrigger,
+    streakMilestoneValue,
+  } = useGame();
   const gardenLevel = getGardenLevel(state.xp);
   const [burstTrigger, setBurstTrigger] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [badgeTrigger, setBadgeTrigger] = useState(0);
+  const [badgeId, setBadgeId] = useState<string | null>(null);
   const gardenRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -59,9 +71,13 @@ export default function GardenScreen() {
   const lessonsUntilBoost = nextBoostAt - (state.completedLessons.length % nextBoostAt);
 
   const handleDailyAction = useCallback(
-    (actionId: string) => {
-      completeDailyAction(actionId);
+    async (actionId: string) => {
+      const { newBadgeIds } = await completeDailyAction(actionId);
       setBurstTrigger((n) => n + 1);
+      if (newBadgeIds.length > 0) {
+        setBadgeId(newBadgeIds[0]);
+        setBadgeTrigger((t) => t + 1);
+      }
     },
     [completeDailyAction]
   );
@@ -139,6 +155,8 @@ export default function GardenScreen() {
 
   return (
     <View style={styles.rootContainer}>
+      <BadgeEarnedOverlay trigger={badgeTrigger} badgeId={badgeId} />
+      <StreakMilestoneOverlay trigger={streakMilestoneTrigger} milestone={streakMilestoneValue} />
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
       contentContainerStyle={[

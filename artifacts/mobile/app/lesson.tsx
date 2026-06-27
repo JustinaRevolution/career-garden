@@ -25,8 +25,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { MODULES } from "@/data/content";
+import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
 import { LevelUpOverlay } from "@/components/LevelUpOverlay";
+import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -132,11 +134,19 @@ export default function LessonScreen() {
   }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { completeLesson, isLessonCompleted, state } = useGame();
+  const {
+    completeLesson,
+    isLessonCompleted,
+    state,
+    streakMilestoneTrigger,
+    streakMilestoneValue,
+  } = useGame();
   const listRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [levelUpTrigger, setLevelUpTrigger] = useState(0);
+  const [badgeTrigger, setBadgeTrigger] = useState(0);
+  const [badgeId, setBadgeId] = useState<string | null>(null);
 
   const module = MODULES.find((m) => m.id === moduleId);
   const lesson = module?.lessons.find((l) => l.id === lessonId);
@@ -154,10 +164,14 @@ export default function LessonScreen() {
   const totalPages = contentPages.length + 1;
 
   const handleComplete = useCallback(async () => {
-    const { leveledUp } = await completeLesson(lesson.id, module.id);
+    const { leveledUp, newBadgeIds } = await completeLesson(lesson.id, module.id);
     setConfettiTrigger((t) => t + 1);
     if (leveledUp) {
       setLevelUpTrigger((t) => t + 1);
+    }
+    if (newBadgeIds.length > 0) {
+      setBadgeId(newBadgeIds[0]);
+      setBadgeTrigger((t) => t + 1);
     }
   }, [lesson.id, module.id]);
 
@@ -197,6 +211,8 @@ export default function LessonScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ConfettiOverlay trigger={confettiTrigger} />
       <LevelUpOverlay trigger={levelUpTrigger} level={state.level} />
+      <BadgeEarnedOverlay trigger={badgeTrigger} badgeId={badgeId} />
+      <StreakMilestoneOverlay trigger={streakMilestoneTrigger} milestone={streakMilestoneValue} />
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color={colors.foreground} />

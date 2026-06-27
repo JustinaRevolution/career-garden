@@ -41,12 +41,23 @@ const DEFAULT_STATE: GameState = {
   xpBoostExpiresAt: null,
 };
 
+const STREAK_MILESTONES = [3, 7, 14, 30];
+
+function getStreakMilestone(prev: number, next: number): number | null {
+  for (const m of STREAK_MILESTONES) {
+    if (prev < m && next >= m) return m;
+  }
+  return null;
+}
+
 interface GameContextType {
   state: GameState;
   isLoaded: boolean;
   levelUpTrigger: number;
-  completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean }>;
-  completeDailyAction: (actionId: string) => Promise<void>;
+  streakMilestoneTrigger: number;
+  streakMilestoneValue: number;
+  completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean; newBadgeIds: string[] }>;
+  completeDailyAction: (actionId: string) => Promise<{ newBadgeIds: string[] }>;
   isLessonCompleted: (lessonId: string) => boolean;
   isBadgeEarned: (badgeId: string) => boolean;
   getModuleProgress: (moduleId: string) => number;
@@ -62,6 +73,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
   const [isLoaded, setIsLoaded] = useState(false);
   const [levelUpTrigger, setLevelUpTrigger] = useState(0);
+  const [streakMilestoneTrigger, setStreakMilestoneTrigger] = useState(0);
+  const [streakMilestoneValue, setStreakMilestoneValue] = useState(0);
   const todayActions = getTodayActions();
 
   useEffect(() => {
@@ -217,9 +230,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return 1;
   }
 
-  const completeLesson = useCallback(async (lessonId: string, moduleId: string): Promise<{ leveledUp: boolean }> => {
+  const completeLesson = useCallback(async (lessonId: string, moduleId: string): Promise<{ leveledUp: boolean; newBadgeIds: string[] }> => {
     const current = stateRef.current;
-    if (current.completedLessons.includes(lessonId)) return { leveledUp: false };
+    if (current.completedLessons.includes(lessonId)) return { leveledUp: false, newBadgeIds: [] };
 
     const mod = MODULES.find((m) => m.id === moduleId);
     const lesson = mod?.lessons.find((l) => l.id === lessonId);
@@ -271,10 +284,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setLevelUpTrigger((t) => t + 1);
     }
 
-    return { leveledUp };
+    const milestone = getStreakMilestone(current.streak, withStreak.streak);
+    if (milestone !== null) {
+      setStreakMilestoneValue(milestone);
+      setStreakMilestoneTrigger((t) => t + 1);
+    }
+
+    return { leveledUp, newBadgeIds: newlyEarnedIds };
   }, []);
 
-  const completeDailyAction = useCallback(async (actionId: string) => {
+  const completeDailyAction = useCallback(async (actionId: string): Promise<{ newBadgeIds: string[] }> => {
     const current = stateRef.current;
     const today = new Date().toDateString();
 
@@ -325,6 +344,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (leveledUp) {
       setLevelUpTrigger((t) => t + 1);
     }
+
+    const milestone = getStreakMilestone(current.streak, withStreak.streak);
+    if (milestone !== null) {
+      setStreakMilestoneValue(milestone);
+      setStreakMilestoneTrigger((t) => t + 1);
+    }
+
+    return { newBadgeIds: newlyEarnedIds };
   }, []);
 
   const activateXPBoost = useCallback(async (): Promise<boolean> => {
@@ -385,6 +412,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         state,
         isLoaded,
         levelUpTrigger,
+        streakMilestoneTrigger,
+        streakMilestoneValue,
         completeLesson,
         completeDailyAction,
         isLessonCompleted,
