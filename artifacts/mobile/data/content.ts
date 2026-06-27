@@ -675,6 +675,24 @@ export const POWER_UP_MILESTONES = {
   lessonsPerXPBoost: 10,
 } as const;
 
+export const XP_SHOP = {
+  streakFreezePrice: 150,
+  xpBoostPrice: 200,
+} as const;
+
+export type PowerUpEventType =
+  | "earned-freeze"
+  | "earned-boost"
+  | "used-freeze"
+  | "used-boost"
+  | "bought-freeze"
+  | "bought-boost";
+
+export interface PowerUpEvent {
+  type: PowerUpEventType;
+  timestamp: number;
+}
+
 export const DAILY_ACTIONS: DailyAction[] = [
   { id: "apply", text: "Apply to 1 job that genuinely excites you", xp: 25 },
   { id: "connect", text: "Send 1 LinkedIn connection request", xp: 25 },

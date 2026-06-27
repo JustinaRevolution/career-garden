@@ -28,6 +28,7 @@ import { MODULES } from "@/data/content";
 import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
 import { LevelUpOverlay } from "@/components/LevelUpOverlay";
+import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -140,6 +141,7 @@ export default function LessonScreen() {
     state,
     streakMilestoneTrigger,
     streakMilestoneValue,
+    streakFreezeTrigger,
   } = useGame();
   const listRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -212,6 +214,7 @@ export default function LessonScreen() {
       <ConfettiOverlay trigger={confettiTrigger} />
       <LevelUpOverlay trigger={levelUpTrigger} level={state.level} />
       <BadgeEarnedOverlay trigger={badgeTrigger} badgeId={badgeId} />
+      <StreakFreezeToast trigger={streakFreezeTrigger} />
       <StreakMilestoneOverlay trigger={streakMilestoneTrigger} milestone={streakMilestoneValue} />
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
