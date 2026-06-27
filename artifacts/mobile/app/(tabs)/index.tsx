@@ -1,11 +1,13 @@
 import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -39,6 +41,8 @@ export default function GardenScreen() {
   const [sharing, setSharing] = useState(false);
   const [badgeTrigger, setBadgeTrigger] = useState(0);
   const [badgeId, setBadgeId] = useState<string | null>(null);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [shareCaption, setShareCaption] = useState("");
   const gardenRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -112,7 +116,16 @@ export default function GardenScreen() {
     );
   }, [boostActive, boostExpiresIn, state.xpBoosts, lessonsUntilBoost, activateXPBoost]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
+    const day = state.streak > 0 ? state.streak : 1;
+    const defaultCaption = `Day ${day} of my job search garden 🌸 #CareerGarden`;
+    setShareCaption(defaultCaption);
+    setShareModalVisible(true);
+  }, [state.streak]);
+
+  const handleConfirmShare = useCallback(async () => {
+    setShareModalVisible(false);
+
     if (Platform.OS === "web") {
       Alert.alert("Sharing not available", "Sharing is only supported on iOS and Android.");
       return;
@@ -126,8 +139,7 @@ export default function GardenScreen() {
         format: "png",
         quality: 1,
       });
-      const day = state.streak > 0 ? state.streak : 1;
-      const caption = `Day ${day} of my job search garden 🌸 #CareerGarden`;
+      const caption = shareCaption.trim() || `Day ${state.streak > 0 ? state.streak : 1} of my job search garden 🌸 #CareerGarden`;
 
       if (Platform.OS === "ios") {
         await Share.share(
@@ -151,7 +163,7 @@ export default function GardenScreen() {
     } finally {
       setSharing(false);
     }
-  }, [state.streak, gardenRef]);
+  }, [shareCaption, state.streak, gardenRef]);
 
   return (
     <View style={styles.rootContainer}>
@@ -316,6 +328,58 @@ export default function GardenScreen() {
         </View>
       </View>
     </ScrollView>
+
+    <Modal
+      visible={shareModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShareModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>Share Your Garden</Text>
+          <Text style={[styles.modalSub, { color: colors.mutedForeground }]}>
+            Edit your message before sharing
+          </Text>
+          <TextInput
+            style={[
+              styles.captionInput,
+              {
+                color: colors.foreground,
+                borderColor: colors.border,
+                backgroundColor: colors.background,
+              },
+            ]}
+            value={shareCaption}
+            onChangeText={setShareCaption}
+            multiline
+            maxLength={280}
+            placeholder="Write your caption…"
+            placeholderTextColor={colors.mutedForeground}
+            autoFocus
+          />
+          <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
+            {shareCaption.length}/280
+          </Text>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              onPress={() => setShareModalVisible(false)}
+              style={[styles.modalBtn, styles.cancelBtn, { borderColor: colors.border }]}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleConfirmShare}
+              style={[styles.modalBtn, styles.confirmBtn, { backgroundColor: colors.primary }]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modalBtnText, { color: "#fff" }]}>Share 🌸</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
     </View>
   );
 }
@@ -422,5 +486,61 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalBox: {
+    width: "100%",
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+    gap: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+  },
+  modalSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 4,
+  },
+  captionInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    minHeight: 100,
+    textAlignVertical: "top",
+  },
+  charCount: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    textAlign: "right",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 6,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  cancelBtn: {
+    borderWidth: 1,
+  },
+  confirmBtn: {},
+  modalBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
   },
 });
