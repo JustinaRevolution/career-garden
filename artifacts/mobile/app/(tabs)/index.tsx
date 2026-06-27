@@ -2,12 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,6 +20,7 @@ import * as Sharing from "expo-sharing";
 import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
+import { SharePreviewCard } from "@/components/SharePreviewCard";
 import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
 import { XPBar } from "@/components/XPBar";
@@ -67,11 +70,13 @@ export default function GardenScreen() {
   const gardenLevel = getGardenLevel(state.xp);
   const [burstTrigger, setBurstTrigger] = useState(0);
   const [sharing, setSharing] = useState(false);
-  const [showCaptionModal, setShowCaptionModal] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [shareCaption, setShareCaption] = useState("");
   const [badgeTrigger, setBadgeTrigger] = useState(0);
   const [badgeId, setBadgeId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const gardenRef = useRef<View>(null);
+  const shareCardRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : 0;
@@ -153,17 +158,29 @@ export default function GardenScreen() {
     );
   }, [canBuyBoost, buyXPBoost]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
+    const day = state.streak > 0 ? state.streak : 1;
+    const defaultCaption = `Day ${day} of my job search garden 🌸 #CareerGarden`;
+    setShareCaption(defaultCaption);
+    setShareModalVisible(true);
+  }, [state.streak]);
+
+  const handleConfirmShare = useCallback(async () => {
     if (Platform.OS === "web") {
+      setShareModalVisible(false);
       Alert.alert("Sharing not available", "Sharing is only supported on iOS and Android.");
       return;
     }
-    if (!gardenRef.current) return;
+
+    if (!shareCardRef.current) return;
+
     try {
       setSharing(true);
-      const uri = await captureRef(gardenRef, { format: "png", quality: 1 });
-      const day = state.streak > 0 ? state.streak : 1;
-      const caption = `Day ${day} of my job search garden 🌸 #CareerGarden`;
+      const uri = await captureRef(shareCardRef, { format: "png", quality: 1 });
+      setShareModalVisible(false);
+
+      const caption = shareCaption.trim() || `Day ${state.streak > 0 ? state.streak : 1} of my job search garden 🌸 #CareerGarden`;
+
       if (Platform.OS === "ios") {
         await Share.share({ message: caption, url: uri }, { subject: "My Career Garden" });
       } else {
@@ -178,7 +195,7 @@ export default function GardenScreen() {
     } finally {
       setSharing(false);
     }
-  }, [state.streak, gardenRef]);
+  }, [shareCaption, state.streak, shareCardRef]);
 
   return (
     <View style={styles.rootContainer}>
@@ -271,7 +288,6 @@ export default function GardenScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Power-Ups</Text>
           <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>Earn by completing lessons & badges</Text>
           <View style={styles.powerUpRow}>
-            {/* Streak Freeze card */}
             <View style={[styles.powerUpCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Text style={styles.powerUpEmoji}>🧊</Text>
               <Text style={[styles.powerUpName, { color: colors.foreground }]}>Streak Freeze</Text>
@@ -282,7 +298,6 @@ export default function GardenScreen() {
                   : `${badgesUntilFreeze} badge${badgesUntilFreeze !== 1 ? "s" : ""} to earn one`}
               </Text>
             </View>
-            {/* XP Boost card */}
             <TouchableOpacity
               onPress={handleActivateBoost}
               activeOpacity={0.8}
@@ -387,6 +402,92 @@ export default function GardenScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Share Preview Bottom Sheet */}
+      <Modal
+        visible={shareModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShareModalVisible(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setShareModalVisible(false)}
+          />
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Share Your Garden</Text>
+
+            <SharePreviewCard
+              ref={shareCardRef}
+              gardenLevel={gardenLevel}
+              streak={state.streak}
+              xp={state.xp}
+              badges={state.earnedBadges.length}
+              caption={shareCaption}
+              showBlossoms={state.level >= 10}
+            />
+
+            <View style={styles.captionRow}>
+              <TextInput
+                style={[
+                  styles.captionInput,
+                  {
+                    color: colors.foreground,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                  },
+                ]}
+                value={shareCaption}
+                onChangeText={setShareCaption}
+                multiline
+                maxLength={280}
+                placeholder="Add a caption…"
+                placeholderTextColor={colors.mutedForeground}
+              />
+              <Text style={[styles.charCount, { color: colors.mutedForeground }]}>
+                {shareCaption.length}/280
+              </Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setShareModalVisible(false)}
+                style={[styles.modalBtn, styles.cancelBtn, { borderColor: colors.border }]}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleConfirmShare}
+                disabled={sharing}
+                style={[
+                  styles.modalBtn,
+                  styles.confirmBtn,
+                  { backgroundColor: colors.primary, opacity: sharing ? 0.6 : 1 },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalBtnText, { color: "#fff" }]}>
+                  {sharing ? "Capturing…" : "Share 🌸"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -494,4 +595,64 @@ const styles = StyleSheet.create({
   historyEmoji: { fontSize: 18, width: 26 },
   historyText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular" },
   historyDate: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 14,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+  },
+  captionRow: {
+    gap: 4,
+  },
+  captionInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    minHeight: 64,
+    textAlignVertical: "top",
+  },
+  charCount: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    textAlign: "right",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  cancelBtn: {
+    borderWidth: 1,
+  },
+  confirmBtn: {},
+  modalBtnText: {
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
+  },
 });
