@@ -142,18 +142,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return [event, ...log].slice(0, 50);
   }
 
-  function updateStreak(currentState: GameState): { next: GameState; freezeUsed: boolean } {
+  function updateStreak(currentState: GameState): { next: GameState; freezeUsed: boolean; milestone: number | null } {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
 
     if (currentState.lastActiveDate === today) {
-      return { next: currentState, freezeUsed: false };
+      return { next: currentState, freezeUsed: false, milestone: null };
     }
 
     if (currentState.lastActiveDate === yesterday) {
+      const nextStreak = currentState.streak + 1;
+      const milestone = getStreakMilestone(currentState.streak, nextStreak);
       return {
-        next: { ...currentState, streak: currentState.streak + 1, lastActiveDate: today },
+        next: { ...currentState, streak: nextStreak, lastActiveDate: today },
         freezeUsed: false,
+        milestone,
       };
     }
 
@@ -168,10 +171,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           powerUpLog: log,
         },
         freezeUsed: true,
+        milestone: null,
       };
     }
 
-    return { next: { ...currentState, streak: 1, lastActiveDate: today }, freezeUsed: false };
+    return { next: { ...currentState, streak: 1, lastActiveDate: today }, freezeUsed: false, milestone: null };
   }
 
   function checkBadges(
@@ -262,7 +266,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       const newCompleted = [...current.completedLessons, lessonId];
       const newXP = current.xp + xpGain;
-      const { next: withStreak, freezeUsed } = updateStreak(current);
+      const { next: withStreak, freezeUsed, milestone } = updateStreak(current);
       const newBadges = checkBadges({ ...current, completedLessons: newCompleted }, newCompleted, withStreak.streak);
 
       const newlyEarnedIds = newBadges.filter((id) => !current.earnedBadges.includes(id));
@@ -301,7 +305,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (leveledUp) setLevelUpTrigger((t) => t + 1);
       if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
 
-      const milestone = getStreakMilestone(current.streak, withStreak.streak);
       if (milestone !== null) {
         setStreakMilestoneValue(milestone);
         setStreakMilestoneTrigger((t) => t + 1);
@@ -325,7 +328,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const newCompleted = [...baseCompleted, actionId];
       const multiplier = getXPMultiplier(current);
       const baseXP = current.xp + 25 * multiplier;
-      const { next: withStreak, freezeUsed } = updateStreak(current);
+      const { next: withStreak, freezeUsed, milestone } = updateStreak(current);
       const newBadges = checkBadges(current, current.completedLessons, withStreak.streak);
 
       const newlyEarnedIds = newBadges.filter((id) => !current.earnedBadges.includes(id));
@@ -365,7 +368,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (leveledUp) setLevelUpTrigger((t) => t + 1);
       if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
 
-      const milestone = getStreakMilestone(current.streak, withStreak.streak);
       if (milestone !== null) {
         setStreakMilestoneValue(milestone);
         setStreakMilestoneTrigger((t) => t + 1);

@@ -15,12 +15,16 @@ interface Props {
   milestone: number;
 }
 
-const MILESTONE_MESSAGES: Record<number, { emoji: string; label: string; sub: string }> = {
-  3:  { emoji: "🔥", label: "3-Day Streak!",  sub: "You're building momentum." },
-  7:  { emoji: "🌟", label: "Week Warrior!",   sub: "7 days strong. The garden blooms." },
-  14: { emoji: "🏆", label: "Fortnight Force!", sub: "Two weeks of daily dedication." },
-  30: { emoji: "🌸", label: "30-Day Legend!",  sub: "A full month. Your garden thrives." },
+const MILESTONE_MESSAGES: Record<number, string> = {
+  3:  "You're building momentum!",
+  7:  "A full week — keep the flame alive.",
+  14: "Two weeks of daily dedication.",
+  30: "A full month. Your garden thrives.",
 };
+
+function getMilestoneMessage(milestone: number): string {
+  return MILESTONE_MESSAGES[milestone] ?? "Keep the streak alive!";
+}
 
 export function StreakMilestoneOverlay({ trigger, milestone }: Props) {
   const scale = useSharedValue(0);
@@ -63,16 +67,14 @@ export function StreakMilestoneOverlay({ trigger, milestone }: Props) {
     transform: [{ scale: ringScale.value }],
   }));
 
-  const info = MILESTONE_MESSAGES[milestone] ?? MILESTONE_MESSAGES[3];
-
   return (
     <View style={[styles.overlay, { pointerEvents: "none" }]}>
       <View style={styles.center}>
         <Animated.View style={[styles.ring, ringStyle]} />
         <Animated.View style={[styles.banner, containerStyle]}>
-          <Text style={styles.emoji}>{info.emoji}</Text>
-          <Text style={styles.label}>{info.label}</Text>
-          <Text style={styles.sub}>{info.sub}</Text>
+          <Text style={styles.flame}>🔥</Text>
+          <Text style={styles.count}>{milestone}-Day Streak!</Text>
+          <Text style={styles.message}>{getMilestoneMessage(milestone)}</Text>
         </Animated.View>
       </View>
     </View>
@@ -113,18 +115,18 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  emoji: {
-    fontSize: 40,
+  flame: {
+    fontSize: 44,
     marginBottom: 4,
   },
-  label: {
+  count: {
     color: "#F5D06E",
     fontSize: 24,
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
     textAlign: "center",
   },
-  sub: {
+  message: {
     color: "#C8A87A",
     fontSize: 14,
     fontFamily: "Inter_400Regular",
