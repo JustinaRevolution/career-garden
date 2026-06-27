@@ -40,7 +40,7 @@ export function StreakFreezeToast({ trigger }: Props) {
         <Text style={styles.icon}>🧊</Text>
         <View style={styles.textBlock}>
           <Text style={styles.title}>Streak Saved!</Text>
-          <Text style={styles.sub}>A Streak Freeze protected your {"\n"}daily run</Text>
+          <Text style={styles.sub}>Your streak freeze protected{"\n"}your streak!</Text>
         </View>
       </Animated.View>
     </View>

@@ -152,12 +152,33 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (stored) {
         const parsed = JSON.parse(stored);
         const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
         if (parsed.dailyActionsDate !== today) {
           parsed.dailyActionsCompleted = [];
           parsed.dailyActionsDate = today;
         }
         const migrated: GameState = { ...DEFAULT_STATE, ...parsed };
-        setState(migrated);
+
+        const freezeAutoApplies =
+          migrated.lastActiveDate !== null &&
+          migrated.lastActiveDate !== today &&
+          migrated.lastActiveDate !== yesterday &&
+          migrated.streakFreezes > 0;
+
+        if (freezeAutoApplies) {
+          const log = appendLog(migrated.powerUpLog, { type: "used-freeze", timestamp: Date.now() });
+          const withFreeze: GameState = {
+            ...migrated,
+            lastActiveDate: today,
+            streakFreezes: migrated.streakFreezes - 1,
+            powerUpLog: log,
+          };
+          setState(withFreeze);
+          await saveState(withFreeze);
+          setStreakFreezeTrigger((t) => t + 1);
+        } else {
+          setState(migrated);
+        }
       }
     } catch {
       // ignore
