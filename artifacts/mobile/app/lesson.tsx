@@ -173,7 +173,7 @@ export default function LessonScreen() {
     }
     if (newBadgeIds.length > 0) {
       setBadgeId(newBadgeIds[0]);
-      setBadgeTrigger((t) => t + 1);
+      setTimeout(() => setBadgeTrigger((t) => t + 1), 1000);
     }
   }, [lesson.id, module.id]);
 

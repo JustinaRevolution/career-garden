@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -20,8 +21,14 @@ interface Props {
 export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
   const translateY = useSharedValue(120);
   const opacity = useSharedValue(0);
+  const badgeRef = useRef<typeof BADGES[number] | null>(null);
 
-  const badge = badgeId ? BADGES.find((b) => b.id === badgeId) : null;
+  if (badgeId) {
+    const found = BADGES.find((b) => b.id === badgeId);
+    if (found) badgeRef.current = found;
+  }
+
+  const badge = badgeRef.current;
 
   useEffect(() => {
     if (trigger === 0 || !badge) return;
@@ -31,7 +38,7 @@ export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
     translateY.value = withSpring(0, { damping: 14, stiffness: 160 });
     opacity.value = withSequence(
       withTiming(1, { duration: 250 }),
-      withDelay(2000, withTiming(0, { duration: 500 }))
+      withDelay(2500, withTiming(0, { duration: 500 }))
     );
   }, [trigger]);
 
@@ -42,17 +49,32 @@ export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
 
   if (!badge) return null;
 
+  function handlePress() {
+    opacity.value = withTiming(0, { duration: 200 });
+    translateY.value = withTiming(80, { duration: 200 });
+    setTimeout(() => router.push("/(tabs)/badges"), 180);
+  }
+
   return (
-    <View style={[styles.overlay, { pointerEvents: "none" }]}>
-      <Animated.View style={[styles.toast, { borderColor: badge.color + "55" }, animStyle]}>
-        <View style={[styles.iconCircle, { backgroundColor: badge.color + "22" }]}>
-          <Ionicons name={badge.icon} size={28} color={badge.color} />
-        </View>
-        <View style={styles.textBlock}>
-          <Text style={styles.earned}>Badge Earned!</Text>
-          <Text style={[styles.name, { color: badge.color }]}>{badge.title}</Text>
-          <Text style={styles.xp}>+{badge.xpReward} XP</Text>
-        </View>
+    <View style={styles.overlay} pointerEvents="box-none">
+      <Animated.View style={animStyle}>
+        <Pressable
+          onPress={handlePress}
+          style={({ pressed }) => [
+            styles.toast,
+            { borderColor: badge.color + "55" },
+            pressed && styles.toastPressed,
+          ]}
+        >
+          <View style={[styles.iconCircle, { backgroundColor: badge.color + "22" }]}>
+            <Ionicons name={badge.icon} size={28} color={badge.color} />
+          </View>
+          <View style={styles.textBlock}>
+            <Text style={styles.earned}>Badge Earned!</Text>
+            <Text style={[styles.name, { color: badge.color }]}>{badge.title}</Text>
+            <Text style={styles.xp}>+{badge.xpReward} XP · Tap to view</Text>
+          </View>
+        </Pressable>
       </Animated.View>
     </View>
   );
@@ -81,6 +103,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 8,
+  },
+  toastPressed: {
+    opacity: 0.8,
   },
   iconCircle: {
     width: 52,
