@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "expo-av": "~15.0.2",
+    "expo-notifications": "~0.32.17",
     "expo-sharing": "~14.0.8",
     "react-native-view-shot": "4.0.3"
   }

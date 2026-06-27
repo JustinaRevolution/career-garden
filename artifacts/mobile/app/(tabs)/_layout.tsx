@@ -20,6 +20,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "books.vertical", selected: "books.vertical.fill" }} />
         <Label>Learn</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="tracker">
+        <Icon sf={{ default: "briefcase", selected: "briefcase.fill" }} />
+        <Label>Tracker</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="badges">
         <Icon sf={{ default: "medal", selected: "medal.fill" }} />
         <Label>Badges</Label>
@@ -87,6 +91,18 @@ function ClassicTabLayout() {
               <SymbolView name="books.vertical.fill" tintColor={color} size={22} />
             ) : (
               <Ionicons name="book-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="tracker"
+        options={{
+          title: "Tracker",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="briefcase.fill" tintColor={color} size={22} />
+            ) : (
+              <Ionicons name="briefcase-outline" size={22} color={color} />
             ),
         }}
       />

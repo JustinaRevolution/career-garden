@@ -8,6 +8,7 @@ import {
   ScrollView,
   Share,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -20,6 +21,7 @@ import * as Sharing from "expo-sharing";
 import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
+import { Onboarding } from "@/components/Onboarding";
 import { SharePreviewCard } from "@/components/SharePreviewCard";
 import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
@@ -27,8 +29,12 @@ import { XPBar } from "@/components/XPBar";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useAmbientSound } from "@/hooks/useAmbientSound";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
+  COSMETICS,
+  DEFAULT_KOI_COLOR,
   getGardenLevel,
+  getWeekStats,
   POWER_UP_MILESTONES,
   XP_SHOP,
   PowerUpEvent,
@@ -64,8 +70,15 @@ export default function GardenScreen() {
     streakFreezeTrigger,
     buyStreakFreeze,
     buyXPBoost,
+    clearGoal,
+    setNotificationsEnabled,
+    buyCosmetic,
+    equipCosmetic,
+    getEquippedKoiColor,
   } = useGame();
   const { muted, toggleMute } = useAmbientSound();
+  const { isSupported: notifSupported, requestPermission, scheduleDailyReminder, cancelDailyReminder } =
+    useNotifications();
 
   const gardenLevel = getGardenLevel(state.xp);
   const [burstTrigger, setBurstTrigger] = useState(0);
@@ -157,6 +170,67 @@ export default function GardenScreen() {
     );
   }, [canBuyBoost, buyXPBoost]);
 
+  const weekStats = getWeekStats(state.dailyLog);
+  const koiColor = getEquippedKoiColor();
+  const bonusKoi = state.applications.length;
+
+  const goalDaysLeft = (() => {
+    if (!state.goal) return null;
+    return Math.ceil((state.goal.targetDate - Date.now()) / 86400000);
+  })();
+
+  const handleToggleReminder = useCallback(
+    async (value: boolean) => {
+      if (value) {
+        const granted = await requestPermission();
+        if (!granted) {
+          Alert.alert(
+            "Notifications Off",
+            "Enable notifications in your device settings to get daily reminders."
+          );
+          return;
+        }
+        const ok = await scheduleDailyReminder();
+        if (ok) await setNotificationsEnabled(true);
+      } else {
+        await cancelDailyReminder();
+        await setNotificationsEnabled(false);
+      }
+    },
+    [requestPermission, scheduleDailyReminder, cancelDailyReminder, setNotificationsEnabled]
+  );
+
+  const handleClearGoal = useCallback(() => {
+    Alert.alert("Clear Goal?", "This removes your countdown. You can set a new goal later.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Clear", style: "destructive", onPress: async () => { await clearGoal(); } },
+    ]);
+  }, [clearGoal]);
+
+  const handleBuyCosmetic = useCallback(
+    async (cosmeticId: string, name: string, price: number) => {
+      if (state.ownedCosmetics.includes(cosmeticId)) {
+        await equipCosmetic(cosmeticId);
+        return;
+      }
+      if (state.xp < price) {
+        Alert.alert("Not Enough XP", `You need ${price} XP to unlock ${name}.`);
+        return;
+      }
+      Alert.alert("Unlock " + name + "?", `Spend ${price} XP to unlock and equip this koi.`, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Unlock",
+          onPress: async () => {
+            const ok = await buyCosmetic(cosmeticId);
+            if (ok) await equipCosmetic(cosmeticId);
+          },
+        },
+      ]);
+    },
+    [state.ownedCosmetics, state.xp, buyCosmetic, equipCosmetic]
+  );
+
   const handleShare = useCallback(() => {
     const day = state.streak > 0 ? state.streak : 1;
     const defaultCaption = `Day ${day} of my job search garden 🌸 #CareerGarden`;
@@ -195,6 +269,10 @@ export default function GardenScreen() {
       setSharing(false);
     }
   }, [shareCaption, state.streak, shareCardRef]);
+
+  if (!state.onboardingComplete) {
+    return <Onboarding />;
+  }
 
   return (
     <View style={styles.rootContainer}>
@@ -242,12 +320,68 @@ export default function GardenScreen() {
           height={220}
           burstTrigger={burstTrigger}
           showBlossoms={state.level >= 10}
+          koiColor={koiColor}
+          bonusKoi={bonusKoi}
         />
         <View style={styles.gardenHint}>
           <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
             {gardenLevel < 7 ? "Complete lessons to grow your garden" : "Your garden is in full bloom"}
           </Text>
         </View>
+
+        {/* Goal Countdown */}
+        {state.goal && goalDaysLeft !== null && (
+          <View style={[styles.goalCard, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "33" }]}>
+            <View style={styles.goalLeft}>
+              <Text style={[styles.goalLabel, { color: colors.primary }]}>MY GOAL</Text>
+              <Text style={[styles.goalRole, { color: colors.foreground }]} numberOfLines={1}>
+                {state.goal.role}
+              </Text>
+            </View>
+            <View style={styles.goalRight}>
+              <Text style={[styles.goalDays, { color: colors.primary }]}>
+                {goalDaysLeft > 0 ? goalDaysLeft : 0}
+              </Text>
+              <Text style={[styles.goalDaysLabel, { color: colors.mutedForeground }]}>
+                {goalDaysLeft === 1 ? "day left" : "days left"}
+              </Text>
+            </View>
+            <Pressable onPress={handleClearGoal} hitSlop={8} style={styles.goalClear}>
+              <Ionicons name="close-circle" size={20} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+        )}
+
+        {/* Weekly Recap */}
+        {weekStats.activeDays > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>This Week</Text>
+            <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>
+              Active {weekStats.activeDays} of the last 7 days
+            </Text>
+            <View style={[styles.recapCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.recapItem}>
+                <Text style={[styles.recapNumber, { color: colors.xpGold }]}>{weekStats.xp}</Text>
+                <Text style={[styles.recapLabel, { color: colors.mutedForeground }]}>XP</Text>
+              </View>
+              <View style={[styles.recapDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.recapItem}>
+                <Text style={[styles.recapNumber, { color: colors.primary }]}>{weekStats.lessons}</Text>
+                <Text style={[styles.recapLabel, { color: colors.mutedForeground }]}>Lessons</Text>
+              </View>
+              <View style={[styles.recapDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.recapItem}>
+                <Text style={[styles.recapNumber, { color: colors.accent }]}>{weekStats.actions}</Text>
+                <Text style={[styles.recapLabel, { color: colors.mutedForeground }]}>Rituals</Text>
+              </View>
+              <View style={[styles.recapDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.recapItem}>
+                <Text style={[styles.recapNumber, { color: colors.success }]}>{weekStats.applications}</Text>
+                <Text style={[styles.recapLabel, { color: colors.mutedForeground }]}>Applied</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Today's Ritual */}
         <View style={styles.section}>
@@ -359,6 +493,88 @@ export default function GardenScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Garden Cosmetics */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Koi Colors</Text>
+          <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>
+            Unlock with XP, then tap to equip
+          </Text>
+          <View style={styles.cosmeticGrid}>
+            {/* Default koi */}
+            <Pressable
+              onPress={() => equipCosmetic(null)}
+              style={[
+                styles.cosmeticCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: state.equippedCosmetic === null ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <View style={[styles.cosmeticSwatch, { backgroundColor: DEFAULT_KOI_COLOR }]} />
+              <Text style={[styles.cosmeticName, { color: colors.foreground }]} numberOfLines={1}>
+                Classic
+              </Text>
+              <Text style={[styles.cosmeticStatus, { color: colors.mutedForeground }]}>
+                {state.equippedCosmetic === null ? "Equipped" : "Free"}
+              </Text>
+            </Pressable>
+            {COSMETICS.map((c) => {
+              const owned = state.ownedCosmetics.includes(c.id);
+              const equipped = state.equippedCosmetic === c.id;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => handleBuyCosmetic(c.id, c.name, c.price)}
+                  style={[
+                    styles.cosmeticCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: equipped ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <View style={[styles.cosmeticSwatch, { backgroundColor: c.value }]} />
+                  <Text style={[styles.cosmeticName, { color: colors.foreground }]} numberOfLines={1}>
+                    {c.name.replace(" Koi", "")}
+                  </Text>
+                  {equipped ? (
+                    <Text style={[styles.cosmeticStatus, { color: colors.primary }]}>Equipped</Text>
+                  ) : owned ? (
+                    <Text style={[styles.cosmeticStatus, { color: colors.mutedForeground }]}>Tap to equip</Text>
+                  ) : (
+                    <View style={[styles.cosmeticPricePill, { backgroundColor: state.xp >= c.price ? colors.xpGold + "22" : colors.muted }]}>
+                      <Text style={[styles.cosmeticPrice, { color: state.xp >= c.price ? "#D4840A" : colors.mutedForeground }]}>
+                        {c.price} XP
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Daily Reminder */}
+        {notifSupported && (
+          <View style={styles.section}>
+            <View style={[styles.reminderCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.reminderText}>
+                <Text style={[styles.reminderTitle, { color: colors.foreground }]}>Daily Reminder</Text>
+                <Text style={[styles.reminderSub, { color: colors.mutedForeground }]}>
+                  A gentle nudge at 6:00 PM to tend your garden
+                </Text>
+              </View>
+              <Switch
+                value={state.notificationsEnabled}
+                onValueChange={handleToggleReminder}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        )}
 
         {/* Power-Up History */}
         {state.powerUpLog.length > 0 && (
@@ -570,6 +786,75 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   shopPrice: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  goalCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  goalLeft: { flex: 1, gap: 2 },
+  goalLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1 },
+  goalRole: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  goalRight: { alignItems: "center" },
+  goalDays: { fontSize: 28, fontFamily: "Inter_700Bold", lineHeight: 32 },
+  goalDaysLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  goalClear: { marginLeft: 4 },
+  recapCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginTop: 6,
+  },
+  recapItem: { flex: 1, alignItems: "center", gap: 2 },
+  recapNumber: { fontSize: 22, fontFamily: "Inter_700Bold" },
+  recapLabel: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  recapDivider: { width: 1, height: 32 },
+  cosmeticGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 6,
+  },
+  cosmeticCard: {
+    width: "31%",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: 6,
+  },
+  cosmeticSwatch: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  cosmeticName: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  cosmeticStatus: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  cosmeticPricePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  cosmeticPrice: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  reminderCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  reminderText: { flex: 1, gap: 2 },
+  reminderTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  reminderSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
   historyHeader: {
     flexDirection: "row",
     alignItems: "center",

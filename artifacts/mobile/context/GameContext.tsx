@@ -3,17 +3,25 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { AppState } from "react-native";
 
 import {
+  APPLICATION_XP,
   BADGES,
+  COSMETICS,
   DailyAction,
+  DailyLogEntry,
+  getCosmetic,
   getLevelFromXP,
+  Goal,
+  JobApplication,
+  ApplicationStatus,
   MODULES,
   getTodayActions,
   POWER_UP_MILESTONES,
   PowerUpEvent,
+  QUIZ_XP,
   XP_SHOP,
 } from "@/data/content";
 
-const STORAGE_KEY = "@career_garden_state_v2";
+const STORAGE_KEY = "@career_garden_state_v3";
 
 export interface GameState {
   xp: number;
@@ -28,6 +36,14 @@ export interface GameState {
   xpBoosts: number;
   xpBoostExpiresAt: number | null;
   powerUpLog: PowerUpEvent[];
+  applications: JobApplication[];
+  quizzesPassed: string[];
+  goal: Goal | null;
+  onboardingComplete: boolean;
+  notificationsEnabled: boolean;
+  dailyLog: Record<string, DailyLogEntry>;
+  ownedCosmetics: string[];
+  equippedCosmetic: string | null;
 }
 
 const DEFAULT_STATE: GameState = {
@@ -43,6 +59,14 @@ const DEFAULT_STATE: GameState = {
   xpBoosts: 0,
   xpBoostExpiresAt: null,
   powerUpLog: [],
+  applications: [],
+  quizzesPassed: [],
+  goal: null,
+  onboardingComplete: false,
+  notificationsEnabled: false,
+  dailyLog: {},
+  ownedCosmetics: [],
+  equippedCosmetic: null,
 };
 
 const STREAK_MILESTONES = [3, 7, 14, 30];
@@ -72,6 +96,18 @@ interface GameContextType {
   isXPBoostActive: () => boolean;
   buyStreakFreeze: () => Promise<boolean>;
   buyXPBoost: () => Promise<boolean>;
+  addApplication: (company: string, role: string, status: ApplicationStatus, notes?: string) => Promise<void>;
+  updateApplication: (id: string, updates: Partial<Pick<JobApplication, "company" | "role" | "status" | "notes">>) => Promise<void>;
+  deleteApplication: (id: string) => Promise<void>;
+  passQuiz: (lessonId: string) => Promise<boolean>;
+  isQuizPassed: (lessonId: string) => boolean;
+  setGoal: (role: string, days: number) => Promise<void>;
+  clearGoal: () => Promise<void>;
+  completeOnboarding: () => Promise<void>;
+  setNotificationsEnabled: (enabled: boolean) => Promise<void>;
+  buyCosmetic: (cosmeticId: string) => Promise<boolean>;
+  equipCosmetic: (cosmeticId: string | null) => Promise<void>;
+  getEquippedKoiColor: () => string;
 }
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -140,6 +176,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   function appendLog(log: PowerUpEvent[], event: PowerUpEvent): PowerUpEvent[] {
     return [event, ...log].slice(0, 50);
+  }
+
+  function bumpDailyLog(
+    log: Record<string, DailyLogEntry>,
+    delta: Partial<DailyLogEntry>
+  ): Record<string, DailyLogEntry> {
+    const today = new Date().toDateString();
+    const existing = log[today] ?? { xp: 0, lessons: 0, actions: 0, applications: 0 };
+    const updated: DailyLogEntry = {
+      xp: existing.xp + (delta.xp ?? 0),
+      lessons: existing.lessons + (delta.lessons ?? 0),
+      actions: existing.actions + (delta.actions ?? 0),
+      applications: existing.applications + (delta.applications ?? 0),
+    };
+    const keys = Object.keys(log);
+    let trimmed = log;
+    if (keys.length > 30 && !log[today]) {
+      const sorted = keys
+        .map((k) => ({ k, t: new Date(k).getTime() }))
+        .sort((a, b) => b.t - a.t)
+        .slice(0, 30)
+        .map((e) => e.k);
+      trimmed = {};
+      for (const k of sorted) trimmed[k] = log[k];
+    }
+    return { ...trimmed, [today]: updated };
   }
 
   function updateStreak(currentState: GameState): { next: GameState; freezeUsed: boolean; milestone: number | null } {
@@ -297,6 +359,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         streakFreezes,
         xpBoosts,
         powerUpLog: log,
+        dailyLog: bumpDailyLog(withStreak.dailyLog, { xp: finalXP - current.xp, lessons: 1 }),
       };
 
       setState(newState);
@@ -360,6 +423,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         streakFreezes,
         xpBoosts,
         powerUpLog: log,
+        dailyLog: bumpDailyLog(withStreak.dailyLog, { xp: finalXP - current.xp, actions: 1 }),
       };
 
       setState(newState);
@@ -431,6 +495,163 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
+  const addApplication = useCallback(
+    async (company: string, role: string, status: ApplicationStatus, notes?: string): Promise<void> => {
+      const current = stateRef.current;
+      const now = Date.now();
+      const app: JobApplication = {
+        id: `app-${now}-${Math.random().toString(36).slice(2, 7)}`,
+        company: company.trim(),
+        role: role.trim(),
+        status,
+        createdAt: now,
+        updatedAt: now,
+        notes: notes?.trim() || undefined,
+      };
+      const multiplier = getXPMultiplier(current);
+      const xpGain = APPLICATION_XP * multiplier;
+      const finalXP = current.xp + xpGain;
+      const finalLevel = getLevelFromXP(finalXP);
+      const leveledUp = finalLevel > current.level;
+      const newState: GameState = {
+        ...current,
+        applications: [app, ...current.applications],
+        xp: finalXP,
+        level: finalLevel,
+        dailyLog: bumpDailyLog(current.dailyLog, { xp: xpGain, applications: 1 }),
+      };
+      setState(newState);
+      await saveState(newState);
+      if (leveledUp) setLevelUpTrigger((t) => t + 1);
+    },
+    []
+  );
+
+  const updateApplication = useCallback(
+    async (
+      id: string,
+      updates: Partial<Pick<JobApplication, "company" | "role" | "status" | "notes">>
+    ): Promise<void> => {
+      const current = stateRef.current;
+      const newState: GameState = {
+        ...current,
+        applications: current.applications.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                ...updates,
+                company: updates.company !== undefined ? updates.company.trim() : a.company,
+                role: updates.role !== undefined ? updates.role.trim() : a.role,
+                notes: updates.notes !== undefined ? updates.notes.trim() || undefined : a.notes,
+                updatedAt: Date.now(),
+              }
+            : a
+        ),
+      };
+      setState(newState);
+      await saveState(newState);
+    },
+    []
+  );
+
+  const deleteApplication = useCallback(async (id: string): Promise<void> => {
+    const current = stateRef.current;
+    const newState: GameState = {
+      ...current,
+      applications: current.applications.filter((a) => a.id !== id),
+    };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  const passQuiz = useCallback(async (lessonId: string): Promise<boolean> => {
+    const current = stateRef.current;
+    if (current.quizzesPassed.includes(lessonId)) return false;
+    const multiplier = getXPMultiplier(current);
+    const xpGain = QUIZ_XP * multiplier;
+    const finalXP = current.xp + xpGain;
+    const finalLevel = getLevelFromXP(finalXP);
+    const leveledUp = finalLevel > current.level;
+    const newState: GameState = {
+      ...current,
+      quizzesPassed: [...current.quizzesPassed, lessonId],
+      xp: finalXP,
+      level: finalLevel,
+      dailyLog: bumpDailyLog(current.dailyLog, { xp: xpGain }),
+    };
+    setState(newState);
+    await saveState(newState);
+    if (leveledUp) setLevelUpTrigger((t) => t + 1);
+    return true;
+  }, []);
+
+  const isQuizPassed = useCallback(
+    (lessonId: string) => state.quizzesPassed.includes(lessonId),
+    [state.quizzesPassed]
+  );
+
+  const setGoal = useCallback(async (role: string, days: number): Promise<void> => {
+    const current = stateRef.current;
+    const now = Date.now();
+    const newState: GameState = {
+      ...current,
+      goal: { role: role.trim(), targetDate: now + days * 86400000, createdAt: now },
+    };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  const clearGoal = useCallback(async (): Promise<void> => {
+    const current = stateRef.current;
+    const newState: GameState = { ...current, goal: null };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  const completeOnboarding = useCallback(async (): Promise<void> => {
+    const current = stateRef.current;
+    const newState: GameState = { ...current, onboardingComplete: true };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  const setNotificationsEnabled = useCallback(async (enabled: boolean): Promise<void> => {
+    const current = stateRef.current;
+    const newState: GameState = { ...current, notificationsEnabled: enabled };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  const buyCosmetic = useCallback(async (cosmeticId: string): Promise<boolean> => {
+    const current = stateRef.current;
+    const cosmetic = COSMETICS.find((c) => c.id === cosmeticId);
+    if (!cosmetic) return false;
+    if (current.ownedCosmetics.includes(cosmeticId)) return false;
+    if (current.xp < cosmetic.price) return false;
+    const newState: GameState = {
+      ...current,
+      xp: current.xp - cosmetic.price,
+      ownedCosmetics: [...current.ownedCosmetics, cosmeticId],
+      equippedCosmetic: cosmeticId,
+    };
+    setState(newState);
+    await saveState(newState);
+    return true;
+  }, []);
+
+  const equipCosmetic = useCallback(async (cosmeticId: string | null): Promise<void> => {
+    const current = stateRef.current;
+    if (cosmeticId !== null && !current.ownedCosmetics.includes(cosmeticId)) return;
+    const newState: GameState = { ...current, equippedCosmetic: cosmeticId };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  const getEquippedKoiColor = useCallback((): string => {
+    const cosmetic = getCosmetic(state.equippedCosmetic);
+    return cosmetic?.value ?? "#F5A54A";
+  }, [state.equippedCosmetic]);
+
   const isLessonCompleted = useCallback(
     (lessonId: string) => state.completedLessons.includes(lessonId),
     [state.completedLessons]
@@ -476,6 +697,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isXPBoostActive,
         buyStreakFreeze,
         buyXPBoost,
+        addApplication,
+        updateApplication,
+        deleteApplication,
+        passQuiz,
+        isQuizPassed,
+        setGoal,
+        clearGoal,
+        completeOnboarding,
+        setNotificationsEnabled,
+        buyCosmetic,
+        equipCosmetic,
+        getEquippedKoiColor,
       }}
     >
       {children}

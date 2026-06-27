@@ -38,6 +38,126 @@ export interface DailyAction {
   xp: number;
 }
 
+export interface Quiz {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export type ApplicationStatus = "saved" | "applied" | "interviewing" | "offer" | "rejected";
+
+export interface JobApplication {
+  id: string;
+  company: string;
+  role: string;
+  status: ApplicationStatus;
+  createdAt: number;
+  updatedAt: number;
+  notes?: string;
+}
+
+export interface ApplicationStatusMeta {
+  id: ApplicationStatus;
+  label: string;
+  color: string;
+  icon: IoniconName;
+}
+
+export const APPLICATION_STATUSES: ApplicationStatusMeta[] = [
+  { id: "saved", label: "Saved", color: "#7BAAC4", icon: "bookmark" },
+  { id: "applied", label: "Applied", color: "#C4A07B", icon: "paper-plane" },
+  { id: "interviewing", label: "Interviewing", color: "#A07BC4", icon: "chatbubbles" },
+  { id: "offer", label: "Offer", color: "#7BC47B", icon: "trophy" },
+  { id: "rejected", label: "Closed", color: "#9A8F85", icon: "close-circle" },
+];
+
+export function getStatusMeta(status: ApplicationStatus): ApplicationStatusMeta {
+  return APPLICATION_STATUSES.find((s) => s.id === status) ?? APPLICATION_STATUSES[0];
+}
+
+export const APPLICATION_XP = 25;
+
+export interface Goal {
+  role: string;
+  targetDate: number;
+  createdAt: number;
+}
+
+export interface GoalTimeline {
+  id: string;
+  label: string;
+  days: number;
+}
+
+export const GOAL_TIMELINES: GoalTimeline[] = [
+  { id: "1m", label: "1 month", days: 30 },
+  { id: "3m", label: "3 months", days: 90 },
+  { id: "6m", label: "6 months", days: 180 },
+  { id: "1y", label: "1 year", days: 365 },
+];
+
+export interface DailyLogEntry {
+  xp: number;
+  lessons: number;
+  actions: number;
+  applications: number;
+}
+
+export interface WeekStats {
+  xp: number;
+  lessons: number;
+  actions: number;
+  applications: number;
+  activeDays: number;
+}
+
+export function getWeekStats(dailyLog: Record<string, DailyLogEntry>): WeekStats {
+  const stats: WeekStats = { xp: 0, lessons: 0, actions: 0, applications: 0, activeDays: 0 };
+  for (let i = 0; i < 7; i++) {
+    const key = new Date(Date.now() - i * 86400000).toDateString();
+    const entry = dailyLog[key];
+    if (entry) {
+      stats.xp += entry.xp;
+      stats.lessons += entry.lessons;
+      stats.actions += entry.actions;
+      stats.applications += entry.applications;
+      if (entry.xp > 0 || entry.lessons > 0 || entry.actions > 0 || entry.applications > 0) {
+        stats.activeDays += 1;
+      }
+    }
+  }
+  return stats;
+}
+
+export type CosmeticType = "koi";
+
+export interface Cosmetic {
+  id: string;
+  name: string;
+  type: CosmeticType;
+  value: string;
+  price: number;
+  emoji: string;
+}
+
+export const DEFAULT_KOI_COLOR = "#F5A54A";
+
+export const COSMETICS: Cosmetic[] = [
+  { id: "koi-crimson", name: "Crimson Koi", type: "koi", value: "#E0544A", price: 300, emoji: "🐟" },
+  { id: "koi-sapphire", name: "Sapphire Koi", type: "koi", value: "#4A86D9", price: 300, emoji: "🐟" },
+  { id: "koi-pearl", name: "Pearl Koi", type: "koi", value: "#E6E2D6", price: 250, emoji: "🐟" },
+  { id: "koi-violet", name: "Violet Koi", type: "koi", value: "#A77BC4", price: 350, emoji: "🐟" },
+  { id: "koi-emerald", name: "Emerald Koi", type: "koi", value: "#4FB88A", price: 350, emoji: "🐟" },
+];
+
+export function getCosmetic(id: string | null): Cosmetic | null {
+  if (!id) return null;
+  return COSMETICS.find((c) => c.id === id) ?? null;
+}
+
+export const QUIZ_XP = 15;
+
 export const XP_LEVELS = [
   0, 150, 350, 600, 900, 1250, 1650, 2100, 2600, 3150,
   3750, 4400, 5100, 5850, 6650, 7500, 8400, 9350, 10350, 11400,

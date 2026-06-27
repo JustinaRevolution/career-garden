@@ -24,7 +24,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
-import { MODULES } from "@/data/content";
+import { MODULES, Quiz, QUIZ_XP } from "@/data/content";
+import { getQuiz } from "@/data/quizzes";
 import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
 import { LevelUpOverlay } from "@/components/LevelUpOverlay";
@@ -128,6 +129,118 @@ function TakeawayPage({
   );
 }
 
+function QuizPage({
+  quiz,
+  moduleColor,
+  alreadyPassed,
+  onPass,
+}: {
+  quiz: Quiz;
+  moduleColor: string;
+  alreadyPassed: boolean;
+  onPass: () => Promise<void>;
+}) {
+  const colors = useColors();
+  const [selected, setSelected] = useState<number | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [earned, setEarned] = useState(false);
+
+  const isCorrect = selected === quiz.correctIndex;
+
+  async function handleSubmit() {
+    if (selected === null || revealed) return;
+    setRevealed(true);
+    if (selected === quiz.correctIndex) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (!alreadyPassed) {
+        setEarned(true);
+        await onPass();
+      }
+    } else {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+  }
+
+  function handleRetry() {
+    setSelected(null);
+    setRevealed(false);
+  }
+
+  return (
+    <View style={[styles.page, { width: SCREEN_WIDTH }]}>
+      <View style={[styles.pageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.takeawayHeader, { backgroundColor: moduleColor + "22" }]}>
+          <Ionicons name="help-circle" size={22} color={moduleColor} />
+          <Text style={[styles.takeawayLabel, { color: moduleColor }]}>
+            Knowledge Check{alreadyPassed ? " ✓" : ` · +${QUIZ_XP} XP`}
+          </Text>
+        </View>
+        <Text style={[styles.quizQuestion, { color: colors.foreground }]}>{quiz.question}</Text>
+
+        <View style={styles.quizOptions}>
+          {quiz.options.map((option, i) => {
+            const isSelected = selected === i;
+            const showCorrect = revealed && i === quiz.correctIndex;
+            const showWrong = revealed && isSelected && i !== quiz.correctIndex;
+            let borderColor = colors.border;
+            let bg = colors.background;
+            if (showCorrect) {
+              borderColor = colors.success;
+              bg = colors.success + "1A";
+            } else if (showWrong) {
+              borderColor = colors.destructive;
+              bg = colors.destructive + "1A";
+            } else if (isSelected) {
+              borderColor = moduleColor;
+              bg = moduleColor + "12";
+            }
+            return (
+              <Pressable
+                key={i}
+                onPress={() => !revealed && setSelected(i)}
+                style={[styles.quizOption, { borderColor, backgroundColor: bg }]}
+              >
+                <Text style={[styles.quizOptionText, { color: colors.foreground }]}>{option}</Text>
+                {showCorrect && <Ionicons name="checkmark-circle" size={20} color={colors.success} />}
+                {showWrong && <Ionicons name="close-circle" size={20} color={colors.destructive} />}
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {revealed && (
+          <View style={[styles.tipBox, { backgroundColor: colors.muted }]}>
+            <Text style={[styles.tipLabel, { color: isCorrect ? colors.success : colors.mutedForeground }]}>
+              {isCorrect ? (earned ? `Correct! +${QUIZ_XP} XP` : "Correct!") : "Not quite"}
+            </Text>
+            <Text style={[styles.tipText, { color: colors.foreground }]}>{quiz.explanation}</Text>
+          </View>
+        )}
+
+        {!revealed ? (
+          <Pressable
+            onPress={handleSubmit}
+            disabled={selected === null}
+            style={[styles.completeBtn, { backgroundColor: moduleColor, opacity: selected === null ? 0.4 : 1 }]}
+          >
+            <Text style={styles.completeBtnText}>Check Answer</Text>
+          </Pressable>
+        ) : !isCorrect ? (
+          <Pressable onPress={handleRetry} style={[styles.completeBtn, { backgroundColor: moduleColor }]}>
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.completeBtnText}>Try Again</Text>
+          </Pressable>
+        ) : (
+          <View style={[styles.completeBtn, { backgroundColor: colors.success }]}>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+            <Text style={styles.completeBtnText}>Swipe for takeaway</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function LessonScreen() {
   const { moduleId, lessonId } = useLocalSearchParams<{
     moduleId: string;
@@ -138,6 +251,8 @@ export default function LessonScreen() {
   const {
     completeLesson,
     isLessonCompleted,
+    passQuiz,
+    isQuizPassed,
     state,
     streakMilestoneTrigger,
     streakMilestoneValue,
@@ -162,8 +277,10 @@ export default function LessonScreen() {
   }
 
   const alreadyCompleted = isLessonCompleted(lesson.id);
+  const quiz = getQuiz(lesson.id);
+  const quizAlreadyPassed = isQuizPassed(lesson.id);
   const contentPages = lesson.content;
-  const totalPages = contentPages.length + 1;
+  const totalPages = contentPages.length + (quiz ? 1 : 0) + 1;
 
   const handleComplete = useCallback(async () => {
     const { leveledUp, newBadgeIds } = await completeLesson(lesson.id, module.id);
@@ -176,6 +293,10 @@ export default function LessonScreen() {
       setTimeout(() => setBadgeTrigger((t) => t + 1), 1000);
     }
   }, [lesson.id, module.id]);
+
+  const handleQuizPass = useCallback(async () => {
+    await passQuiz(lesson.id);
+  }, [lesson.id]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -202,10 +323,12 @@ export default function LessonScreen() {
 
   type PageItem =
     | { type: "content"; text: string; index: number }
+    | { type: "quiz" }
     | { type: "takeaway"; index: number };
 
   const pages: PageItem[] = [
     ...contentPages.map<PageItem>((text, i) => ({ type: "content", text, index: i })),
+    ...(quiz ? [{ type: "quiz" } as PageItem] : []),
     { type: "takeaway", index: contentPages.length },
   ];
 
@@ -268,6 +391,16 @@ export default function LessonScreen() {
                 text={item.text}
                 pageIndex={item.index}
                 totalPages={totalPages}
+              />
+            );
+          }
+          if (item.type === "quiz" && quiz) {
+            return (
+              <QuizPage
+                quiz={quiz}
+                moduleColor={module.color}
+                alreadyPassed={quizAlreadyPassed}
+                onPass={handleQuizPass}
               />
             );
           }
@@ -407,6 +540,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     lineHeight: 21,
+  },
+  quizQuestion: {
+    fontSize: 18,
+    fontFamily: "Inter_600SemiBold",
+    lineHeight: 26,
+  },
+  quizOptions: { gap: 10 },
+  quizOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  quizOptionText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_500Medium",
+    lineHeight: 20,
   },
   completeBtn: {
     borderRadius: 14,

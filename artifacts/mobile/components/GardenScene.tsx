@@ -424,15 +424,31 @@ function FadeInView({
   return <Animated.View style={[StyleSheet.absoluteFill, style]}>{children}</Animated.View>;
 }
 
+const BONUS_KOI_SPOTS = [
+  { x: 120, y: 70, delay: 600, width: 30, height: 12 },
+  { x: 250, y: 120, delay: 1100, width: 32, height: 13 },
+  { x: 60, y: 130, delay: 1700, width: 28, height: 11 },
+  { x: 215, y: 60, delay: 2200, width: 30, height: 12 },
+  { x: 150, y: 160, delay: 2700, width: 34, height: 13 },
+  { x: 95, y: 50, delay: 3100, width: 26, height: 11 },
+];
+
 interface Props {
   gardenLevel: number;
   height?: number;
   burstTrigger?: number;
   showBlossoms?: boolean;
+  koiColor?: string;
+  bonusKoi?: number;
 }
 
 export const GardenScene = React.forwardRef<View, Props>(
-  function GardenScene({ gardenLevel, height = 220, burstTrigger = 0, showBlossoms = false }, ref) {
+  function GardenScene(
+    { gardenLevel, height = 220, burstTrigger = 0, showBlossoms = false, koiColor = "#F5A54A", bonusKoi = 0 },
+    ref
+  ) {
+  const bonusKoiColors = ["#E0D8CC", "#7BC4A0", "#E8896E", "#A77BC4", "#7BAAC4", "#F5D06E"];
+  const bonusCount = Math.min(bonusKoi, BONUS_KOI_SPOTS.length);
   return (
     <View ref={ref} style={[styles.container, { height }]}>
       <LinearGradient
@@ -458,7 +474,7 @@ export const GardenScene = React.forwardRef<View, Props>(
       </FadeInView>
 
       <FadeInView visible={gardenLevel >= 2} delay={600}>
-        <KoiFish x={80} y={90} color="#F5A54A" delay={300} width={46} height={18} />
+        <KoiFish x={80} y={90} color={koiColor} delay={300} width={46} height={18} />
       </FadeInView>
 
       <FadeInView visible={gardenLevel >= 3} delay={400}>
@@ -484,6 +500,22 @@ export const GardenScene = React.forwardRef<View, Props>(
         <BambooStalk x={300} height={height} color="#3A6A2A" />
         <BambooStalk x={316} height={height * 0.6} color="#2E5820" />
       </FadeInView>
+
+      {bonusCount > 0 && (
+        <FadeInView visible={true} delay={400}>
+          {BONUS_KOI_SPOTS.slice(0, bonusCount).map((spot, i) => (
+            <KoiFish
+              key={`bonus-${i}`}
+              x={spot.x}
+              y={spot.y}
+              color={bonusKoiColors[i % bonusKoiColors.length]}
+              delay={spot.delay}
+              width={spot.width}
+              height={spot.height}
+            />
+          ))}
+        </FadeInView>
+      )}
 
       <FadeInView visible={showBlossoms} delay={0}>
         <CherryBlossomPetal startX={35} delay={0} gardenHeight={height} />
