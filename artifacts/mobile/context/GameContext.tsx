@@ -44,6 +44,7 @@ export interface GameState {
   dailyLog: Record<string, DailyLogEntry>;
   ownedCosmetics: string[];
   equippedCosmetic: string | null;
+  pendingStreakMilestone: number | null;
 }
 
 const DEFAULT_STATE: GameState = {
@@ -67,6 +68,7 @@ const DEFAULT_STATE: GameState = {
   dailyLog: {},
   ownedCosmetics: [],
   equippedCosmetic: null,
+  pendingStreakMilestone: null,
 };
 
 const STREAK_MILESTONES = [3, 7, 14, 30];
@@ -129,14 +131,29 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         const today = new Date().toDateString();
-        if (stateRef.current.dailyActionsDate !== today) {
-          const reset: GameState = {
-            ...stateRef.current,
+        let updated = stateRef.current;
+        let changed = false;
+
+        if (updated.dailyActionsDate !== today) {
+          updated = {
+            ...updated,
             dailyActionsCompleted: [],
             dailyActionsDate: today,
           };
-          setState(reset);
-          saveState(reset);
+          changed = true;
+        }
+
+        if (updated.pendingStreakMilestone !== null) {
+          const milestone = updated.pendingStreakMilestone;
+          updated = { ...updated, pendingStreakMilestone: null };
+          changed = true;
+          setStreakMilestoneValue(milestone);
+          setStreakMilestoneTrigger((t) => t + 1);
+        }
+
+        if (changed) {
+          setState(updated);
+          saveState(updated);
         }
       }
     });
@@ -371,6 +388,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         withStreak.powerUpLog
       );
 
+      const isActive = AppState.currentState === "active";
+      const deferMilestone = milestone !== null && !isActive;
+
       const newState: GameState = {
         ...withStreak,
         xp: finalXP,
@@ -381,6 +401,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         xpBoosts,
         powerUpLog: log,
         dailyLog: bumpDailyLog(withStreak.dailyLog, { xp: finalXP - current.xp, lessons: 1 }),
+        pendingStreakMilestone: deferMilestone ? milestone : withStreak.pendingStreakMilestone,
       };
 
       setState(newState);
@@ -389,7 +410,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (leveledUp) setLevelUpTrigger((t) => t + 1);
       if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
 
-      if (milestone !== null) {
+      if (milestone !== null && !deferMilestone) {
         setStreakMilestoneValue(milestone);
         setStreakMilestoneTrigger((t) => t + 1);
       }
@@ -434,6 +455,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         withStreak.powerUpLog
       );
 
+      const isActive = AppState.currentState === "active";
+      const deferMilestone = milestone !== null && !isActive;
+
       const newState: GameState = {
         ...withStreak,
         xp: finalXP,
@@ -445,6 +469,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         xpBoosts,
         powerUpLog: log,
         dailyLog: bumpDailyLog(withStreak.dailyLog, { xp: finalXP - current.xp, actions: 1 }),
+        pendingStreakMilestone: deferMilestone ? milestone : withStreak.pendingStreakMilestone,
       };
 
       setState(newState);
@@ -453,7 +478,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (leveledUp) setLevelUpTrigger((t) => t + 1);
       if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
 
-      if (milestone !== null) {
+      if (milestone !== null && !deferMilestone) {
         setStreakMilestoneValue(milestone);
         setStreakMilestoneTrigger((t) => t + 1);
       }
