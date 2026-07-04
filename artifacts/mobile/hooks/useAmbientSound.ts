@@ -9,10 +9,17 @@ const DEFAULT_VOLUME = 0.25;
 const CROSSFADE_MS = 1800;
 const CROSSFADE_STEPS = 18;
 
+// Ambient loops are WAV (16-bit PCM) rather than MP3 so they loop truly
+// gaplessly. MP3 is not a gapless format — decoders re-insert ~1 frame
+// (~26ms) of encoder-delay silence on every play, which expo-av's
+// `isLooping` surfaces as a faint recurring tick at the ~25s loop point.
+// PCM has zero decoder priming, so the loop is sample-accurate. The source
+// tracks are effectively mono (L/R differ by ~45dB), so they are stored as
+// mono to offset WAV's larger footprint with no audible loss.
 const AMBIENT_TRACKS = {
-  sparse: require("../assets/sounds/ambient-sparse.mp3"),
-  mid: require("../assets/sounds/ambient-mid.mp3"),
-  full: require("../assets/sounds/ambient-full.mp3"),
+  sparse: require("../assets/sounds/ambient-sparse.wav"),
+  mid: require("../assets/sounds/ambient-mid.wav"),
+  full: require("../assets/sounds/ambient-full.wav"),
 } as const;
 
 type TrackKey = keyof typeof AMBIENT_TRACKS;
