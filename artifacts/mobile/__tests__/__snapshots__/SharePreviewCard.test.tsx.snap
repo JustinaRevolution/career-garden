@@ -1,0 +1,901 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SharePreviewCard responsive scaling matches the rendered snapshot at 320px 1`] = `
+<View
+  collapsable={false}
+  style={
+    {
+      "backgroundColor": "#0D2B28",
+      "borderRadius": 20,
+      "elevation": 8,
+      "overflow": "hidden",
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.35,
+      "shadowRadius": 12,
+    }
+  }
+>
+  <View
+    gardenHeight={138}
+    testID="garden-scene"
+  />
+  <View
+    colors={
+      [
+        "#0D2B28",
+        "#122820",
+      ]
+    }
+    style={
+      {
+        "gap": 10,
+        "paddingBottom": 16,
+        "paddingHorizontal": 20,
+        "paddingTop": 14,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 17,
+              },
+            ]
+          }
+        >
+          🔥
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 17,
+              },
+            ]
+          }
+        >
+          12
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 9,
+              },
+            ]
+          }
+        >
+          day streak
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#2A4040",
+            "flexShrink": 0,
+            "height": 36,
+            "marginHorizontal": 4,
+            "width": 1,
+          }
+        }
+      />
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 17,
+              },
+            ]
+          }
+        >
+          ✨
+        </Text>
+        <Text
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.7}
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 17,
+              },
+            ]
+          }
+        >
+          1450
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 9,
+              },
+            ]
+          }
+        >
+          XP
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#2A4040",
+            "flexShrink": 0,
+            "height": 36,
+            "marginHorizontal": 4,
+            "width": 1,
+          }
+        }
+      />
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 17,
+              },
+            ]
+          }
+        >
+          🏅
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 17,
+              },
+            ]
+          }
+        >
+          7
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 9,
+              },
+            ]
+          }
+        >
+          badges
+        </Text>
+      </View>
+    </View>
+    <Text
+      numberOfLines={3}
+      style={
+        [
+          {
+            "color": "#D0E8D8",
+            "fontFamily": "Inter_400Regular",
+            "fontSize": 14,
+            "lineHeight": 20,
+            "marginTop": 2,
+            "textAlign": "center",
+          },
+          {
+            "fontSize": 12,
+          },
+        ]
+      }
+    >
+      Day 12 of my job search garden growing strong 🌱
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "color": "#5A8A78",
+            "fontFamily": "Inter_700Bold",
+            "fontSize": 12,
+            "letterSpacing": 0.5,
+            "marginTop": 2,
+            "textAlign": "center",
+          },
+          {
+            "fontSize": 10,
+          },
+        ]
+      }
+    >
+      Career Garden 🌸
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`SharePreviewCard responsive scaling matches the rendered snapshot at 428px 1`] = `
+<View
+  collapsable={false}
+  style={
+    {
+      "backgroundColor": "#0D2B28",
+      "borderRadius": 20,
+      "elevation": 8,
+      "overflow": "hidden",
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.35,
+      "shadowRadius": 12,
+    }
+  }
+>
+  <View
+    gardenHeight={190}
+    testID="garden-scene"
+  />
+  <View
+    colors={
+      [
+        "#0D2B28",
+        "#122820",
+      ]
+    }
+    style={
+      {
+        "gap": 10,
+        "paddingBottom": 16,
+        "paddingHorizontal": 20,
+        "paddingTop": 14,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 21,
+              },
+            ]
+          }
+        >
+          🔥
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 21,
+              },
+            ]
+          }
+        >
+          12
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 12,
+              },
+            ]
+          }
+        >
+          day streak
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#2A4040",
+            "flexShrink": 0,
+            "height": 36,
+            "marginHorizontal": 4,
+            "width": 1,
+          }
+        }
+      />
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 21,
+              },
+            ]
+          }
+        >
+          ✨
+        </Text>
+        <Text
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.7}
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 21,
+              },
+            ]
+          }
+        >
+          1450
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 12,
+              },
+            ]
+          }
+        >
+          XP
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#2A4040",
+            "flexShrink": 0,
+            "height": 36,
+            "marginHorizontal": 4,
+            "width": 1,
+          }
+        }
+      />
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 21,
+              },
+            ]
+          }
+        >
+          🏅
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 21,
+              },
+            ]
+          }
+        >
+          7
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 12,
+              },
+            ]
+          }
+        >
+          badges
+        </Text>
+      </View>
+    </View>
+    <Text
+      numberOfLines={3}
+      style={
+        [
+          {
+            "color": "#D0E8D8",
+            "fontFamily": "Inter_400Regular",
+            "fontSize": 14,
+            "lineHeight": 20,
+            "marginTop": 2,
+            "textAlign": "center",
+          },
+          {
+            "fontSize": 15,
+          },
+        ]
+      }
+    >
+      Day 12 of my job search garden growing strong 🌱
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "color": "#5A8A78",
+            "fontFamily": "Inter_700Bold",
+            "fontSize": 12,
+            "letterSpacing": 0.5,
+            "marginTop": 2,
+            "textAlign": "center",
+          },
+          {
+            "fontSize": 13,
+          },
+        ]
+      }
+    >
+      Career Garden 🌸
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`SharePreviewCard responsive scaling matches the rendered snapshot at 900px 1`] = `
+<View
+  collapsable={false}
+  style={
+    {
+      "backgroundColor": "#0D2B28",
+      "borderRadius": 20,
+      "elevation": 8,
+      "overflow": "hidden",
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.35,
+      "shadowRadius": 12,
+    }
+  }
+>
+  <View
+    gardenHeight={230}
+    testID="garden-scene"
+  />
+  <View
+    colors={
+      [
+        "#0D2B28",
+        "#122820",
+      ]
+    }
+    style={
+      {
+        "gap": 10,
+        "paddingBottom": 16,
+        "paddingHorizontal": 20,
+        "paddingTop": 14,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 23,
+              },
+            ]
+          }
+        >
+          🔥
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 23,
+              },
+            ]
+          }
+        >
+          12
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 13,
+              },
+            ]
+          }
+        >
+          day streak
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#2A4040",
+            "flexShrink": 0,
+            "height": 36,
+            "marginHorizontal": 4,
+            "width": 1,
+          }
+        }
+      />
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 23,
+              },
+            ]
+          }
+        >
+          ✨
+        </Text>
+        <Text
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.7}
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 23,
+              },
+            ]
+          }
+        >
+          1450
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 13,
+              },
+            ]
+          }
+        >
+          XP
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#2A4040",
+            "flexShrink": 0,
+            "height": 36,
+            "marginHorizontal": 4,
+            "width": 1,
+          }
+        }
+      />
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "gap": 2,
+            "minWidth": 0,
+          }
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "fontSize": 20,
+              },
+              {
+                "fontSize": 23,
+              },
+            ]
+          }
+        >
+          🏅
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#F0EDE5",
+                "fontFamily": "Inter_700Bold",
+                "fontSize": 20,
+                "lineHeight": 24,
+              },
+              {
+                "fontSize": 23,
+              },
+            ]
+          }
+        >
+          7
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#8BA99A",
+                "flexShrink": 1,
+                "fontFamily": "Inter_400Regular",
+                "fontSize": 11,
+                "letterSpacing": 0.2,
+                "textAlign": "center",
+              },
+              {
+                "fontSize": 13,
+              },
+            ]
+          }
+        >
+          badges
+        </Text>
+      </View>
+    </View>
+    <Text
+      numberOfLines={3}
+      style={
+        [
+          {
+            "color": "#D0E8D8",
+            "fontFamily": "Inter_400Regular",
+            "fontSize": 14,
+            "lineHeight": 20,
+            "marginTop": 2,
+            "textAlign": "center",
+          },
+          {
+            "fontSize": 16,
+          },
+        ]
+      }
+    >
+      Day 12 of my job search garden growing strong 🌱
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "color": "#5A8A78",
+            "fontFamily": "Inter_700Bold",
+            "fontSize": 12,
+            "letterSpacing": 0.5,
+            "marginTop": 2,
+            "textAlign": "center",
+          },
+          {
+            "fontSize": 14,
+          },
+        ]
+      }
+    >
+      Career Garden 🌸
+    </Text>
+  </View>
+</View>
+`;
