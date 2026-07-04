@@ -1,1 +1,2 @@
 - [RN Web custom slider gestures](rn-web-custom-slider.md) — drag sliders in a Modal can close it on web; use `.web.tsx` + native range input instead.
+- [RN Web SVG default-viewport seam](rn-web-svg-sizing.md) — an `<Svg>` sized only via style falls back to 300x150 on web; set explicit width/height="100%".

@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useId } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
@@ -618,7 +618,7 @@ function FadeInView({
 function WaterDepth({ poolColor, poolMid }: { poolColor: string; poolMid: string }) {
   const id = cleanId(useId());
   return (
-    <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" pointerEvents="none">
+    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} preserveAspectRatio="none" pointerEvents="none">
       <Defs>
         <RadialGradient id={`pool${id}`} cx="50%" cy="26%" r="72%">
           <Stop offset="0" stopColor={poolColor} stopOpacity={0.6} />
@@ -722,12 +722,20 @@ function Caustic({
   );
 }
 
-function Caustics({ color, staticMode = false }: { color: string; staticMode?: boolean }) {
+function Caustics({
+  color,
+  scale = 1,
+  staticMode = false,
+}: {
+  color: string;
+  scale?: number;
+  staticMode?: boolean;
+}) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Caustic x={30} y={30} w={150} h={72} dx={26} dy={16} delay={0} color={color} staticMode={staticMode} />
-      <Caustic x={175} y={110} w={170} h={82} dx={-30} dy={-18} delay={1500} color={color} staticMode={staticMode} />
-      <Caustic x={85} y={150} w={130} h={62} dx={22} dy={-14} delay={3000} color={color} staticMode={staticMode} />
+      <Caustic x={30 * scale} y={30} w={150 * scale} h={72} dx={26} dy={16} delay={0} color={color} staticMode={staticMode} />
+      <Caustic x={175 * scale} y={110} w={170 * scale} h={82} dx={-30} dy={-18} delay={1500} color={color} staticMode={staticMode} />
+      <Caustic x={85 * scale} y={150} w={130 * scale} h={62} dx={22} dy={-14} delay={3000} color={color} staticMode={staticMode} />
     </View>
   );
 }
@@ -742,6 +750,12 @@ const BONUS_KOI_SPOTS = [
 ];
 
 const BLOSSOM_FRACTIONS = [0.55, 0.35, 0.7, 0.25, 0.45, 0.6, 0.3, 0.5];
+
+// Horizontal coordinate space the scene positions are authored against. The
+// pond stretches to fill its container width, so we scale x-positions by the
+// measured width / this baseline to keep koi and decor spread across the whole
+// pond instead of clustering into a left-hand rectangle on wider screens.
+const DESIGN_W = 330;
 
 interface Props {
   gardenLevel: number;
@@ -769,8 +783,15 @@ export const GardenScene = React.forwardRef<View, Props>(
     const bonusKoiColors = ["#E0D8CC", "#7BC4A0", "#E8896E", "#A77BC4", "#7BAAC4", "#F5D06E"];
     const bonusCount = Math.min(bonusKoi, BONUS_KOI_SPOTS.length);
     const pal = timeOfDay(gardenLevel);
+    const [measuredW, setMeasuredW] = useState(0);
+    const scale = measuredW > 0 ? measuredW / DESIGN_W : 1;
+    const sx = (v: number) => v * scale;
     return (
-      <View ref={ref} style={[styles.container, { height }]}>
+      <View
+        ref={ref}
+        style={[styles.container, { height }]}
+        onLayout={(e) => setMeasuredW(e.nativeEvent.layout.width)}
+      >
         <LinearGradient
           colors={pal.grad}
           locations={[0, 0.5, 1]}
@@ -779,12 +800,12 @@ export const GardenScene = React.forwardRef<View, Props>(
 
         <WaterDepth poolColor={pal.poolInner} poolMid={pal.poolMid} />
 
-        <Caustics color={pal.caustic} staticMode={staticMode} />
+        <Caustics color={pal.caustic} scale={scale} staticMode={staticMode} />
 
         <View style={StyleSheet.absoluteFill}>
-          <WaterRipple x={90} y={120} size={80} delay={0} color={pal.ripple} staticMode={staticMode} staticScale={0.95} staticOpacity={0.6} />
-          <WaterRipple x={230} y={80} size={70} delay={1200} color={pal.ripple} staticMode={staticMode} staticScale={0.6} staticOpacity={0.68} />
-          <WaterRipple x={160} y={170} size={90} delay={2400} color={pal.ripple} staticMode={staticMode} staticScale={0.4} staticOpacity={0.72} />
+          <WaterRipple x={sx(90)} y={120} size={80} delay={0} color={pal.ripple} staticMode={staticMode} staticScale={0.95} staticOpacity={0.6} />
+          <WaterRipple x={sx(230)} y={80} size={70} delay={1200} color={pal.ripple} staticMode={staticMode} staticScale={0.6} staticOpacity={0.68} />
+          <WaterRipple x={sx(160)} y={170} size={90} delay={2400} color={pal.ripple} staticMode={staticMode} staticScale={0.4} staticOpacity={0.72} />
         </View>
 
         {!staticMode && (
@@ -794,38 +815,38 @@ export const GardenScene = React.forwardRef<View, Props>(
         )}
 
         <FadeInView visible={gardenLevel >= 2} delay={200} staticMode={staticMode}>
-          <LilyPad x={50} y={55} size={32} />
-          <LilyPad x={250} y={45} size={28} />
-          <LilyPad x={75} y={155} size={30} />
-          <LilyPad x={280} y={165} size={26} />
+          <LilyPad x={sx(50)} y={55} size={32} />
+          <LilyPad x={sx(250)} y={45} size={28} />
+          <LilyPad x={sx(75)} y={155} size={30} />
+          <LilyPad x={sx(280)} y={165} size={26} />
         </FadeInView>
 
         <FadeInView visible={gardenLevel >= 2} delay={600} staticMode={staticMode}>
-          <KoiFish x={80} y={90} color={koiColor} delay={300} width={46} height={18} staticMode={staticMode} />
+          <KoiFish x={sx(80)} y={90} color={koiColor} delay={300} width={46} height={18} staticMode={staticMode} />
         </FadeInView>
 
         <FadeInView visible={gardenLevel >= 3} delay={400} staticMode={staticMode}>
-          <LotusFlower x={195} y={95} staticMode={staticMode} />
+          <LotusFlower x={sx(195)} y={95} staticMode={staticMode} />
         </FadeInView>
 
         <FadeInView visible={gardenLevel >= 4} delay={200} staticMode={staticMode}>
-          <StoneLantern x={170} y={26} staticMode={staticMode} />
+          <StoneLantern x={sx(170)} y={26} staticMode={staticMode} />
         </FadeInView>
 
         <FadeInView visible={gardenLevel >= 5} delay={800} staticMode={staticMode}>
-          <KoiFish x={190} y={145} color="#E0D8CC" delay={1500} width={36} height={14} staticMode={staticMode} />
+          <KoiFish x={sx(190)} y={145} color="#E0D8CC" delay={1500} width={36} height={14} staticMode={staticMode} />
         </FadeInView>
 
         <FadeInView visible={gardenLevel >= 6} delay={0} staticMode={staticMode}>
-          <LilyPad x={130} y={40} size={24} />
-          <LilyPad x={200} y={170} size={30} />
+          <LilyPad x={sx(130)} y={40} size={24} />
+          <LilyPad x={sx(200)} y={170} size={30} />
         </FadeInView>
 
         <FadeInView visible={gardenLevel >= 7} delay={300} staticMode={staticMode}>
-          <BambooStalk x={10} height={height} color="#3A6A2A" />
-          <BambooStalk x={24} height={height * 0.75} color="#2E5820" />
-          <BambooStalk x={300} height={height} color="#3A6A2A" />
-          <BambooStalk x={316} height={height * 0.6} color="#2E5820" />
+          <BambooStalk x={sx(10)} height={height} color="#3A6A2A" />
+          <BambooStalk x={sx(24)} height={height * 0.75} color="#2E5820" />
+          <BambooStalk x={sx(300)} height={height} color="#3A6A2A" />
+          <BambooStalk x={sx(316)} height={height * 0.6} color="#2E5820" />
         </FadeInView>
 
         {bonusCount > 0 && (
@@ -833,7 +854,7 @@ export const GardenScene = React.forwardRef<View, Props>(
             {BONUS_KOI_SPOTS.slice(0, bonusCount).map((spot, i) => (
               <KoiFish
                 key={`bonus-${i}`}
-                x={spot.x}
+                x={sx(spot.x)}
                 y={spot.y}
                 color={bonusKoiColors[i % bonusKoiColors.length]}
                 delay={spot.delay}
@@ -846,14 +867,14 @@ export const GardenScene = React.forwardRef<View, Props>(
         )}
 
         <FadeInView visible={showBlossoms} delay={0} staticMode={staticMode}>
-          <CherryBlossomPetal startX={35} delay={0} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[0]} />
-          <CherryBlossomPetal startX={90} delay={900} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[1]} />
-          <CherryBlossomPetal startX={150} delay={1800} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[2]} />
-          <CherryBlossomPetal startX={210} delay={500} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[3]} />
-          <CherryBlossomPetal startX={265} delay={1400} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[4]} />
-          <CherryBlossomPetal startX={310} delay={2200} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[5]} />
-          <CherryBlossomPetal startX={65} delay={2700} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[6]} />
-          <CherryBlossomPetal startX={185} delay={3200} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[7]} />
+          <CherryBlossomPetal startX={sx(35)} delay={0} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[0]} />
+          <CherryBlossomPetal startX={sx(90)} delay={900} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[1]} />
+          <CherryBlossomPetal startX={sx(150)} delay={1800} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[2]} />
+          <CherryBlossomPetal startX={sx(210)} delay={500} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[3]} />
+          <CherryBlossomPetal startX={sx(265)} delay={1400} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[4]} />
+          <CherryBlossomPetal startX={sx(310)} delay={2200} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[5]} />
+          <CherryBlossomPetal startX={sx(65)} delay={2700} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[6]} />
+          <CherryBlossomPetal startX={sx(185)} delay={3200} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[7]} />
         </FadeInView>
 
         <View pointerEvents="none" style={styles.rim} />
