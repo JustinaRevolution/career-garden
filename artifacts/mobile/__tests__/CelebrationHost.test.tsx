@@ -250,4 +250,82 @@ describe("CelebrationHost coordination", () => {
     });
     expect(currentKind(tree)).toBeNull();
   });
+
+  it("keeps announcing every queued celebration when the user navigates away mid-burst", () => {
+    const { View } = require("react-native");
+
+    // Mirrors app/_layout.tsx: the navigable screen and CelebrationHost are
+    // siblings under the app root. Changing `route` re-renders the screen but
+    // CelebrationHost stays mounted in the same slot, so its queue must survive.
+    const Root = ({ route }: { route: string }) => (
+      <>
+        <View route={route} />
+        <CelebrationHost />
+      </>
+    );
+
+    act(() => {
+      tree = TestRenderer.create(<Root route="lesson" />);
+    });
+
+    // A lesson completion enqueues a level-up, a streak milestone, and a badge burst.
+    act(() => {
+      enqueue({ kind: "levelUp", level: 5 });
+      enqueue({ kind: "streakMilestone", milestone: 7 });
+      enqueue({ kind: "badge", badgeIds: ["a", "b"] });
+    });
+
+    const seen: string[] = [];
+    const record = () => {
+      // Never more than one overlay committed, even across navigations.
+      expect(activeCount(tree)).toBeLessThanOrEqual(1);
+      const k = currentKind(tree);
+      if (k && seen[seen.length - 1] !== k) seen.push(k);
+    };
+
+    record();
+    expect(currentKind(tree)).toBe("levelUp");
+
+    // Leave the lesson while the level-up is still on screen. The route changes
+    // but the celebration must keep playing.
+    act(() => {
+      tree!.update(<Root route="home" />);
+    });
+    expect(currentKind(tree)).toBe("levelUp");
+
+    // Finish the level-up, then navigate again mid-milestone.
+    act(() => {
+      jest.advanceTimersByTime(LEVEL_UP_MS + GAP_MS);
+    });
+    record();
+    expect(currentKind(tree)).toBe("streakMilestone");
+
+    act(() => {
+      tree!.update(<Root route="garden" />);
+    });
+    expect(currentKind(tree)).toBe("streakMilestone");
+
+    // Finish the milestone -> badge burst, then navigate once more mid-burst.
+    act(() => {
+      jest.advanceTimersByTime(STREAK_MILESTONE_MS + GAP_MS);
+    });
+    record();
+    expect(currentKind(tree)).toBe("badge");
+
+    act(() => {
+      tree!.update(<Root route="profile" />);
+    });
+    expect(currentKind(tree)).toBe("badge");
+
+    // Drain the badge burst.
+    act(() => {
+      jest.advanceTimersByTime(2 * BADGE_CYCLE_MS + GAP_MS);
+    });
+    record();
+
+    // Despite three route changes, every queued celebration played to
+    // completion, in order, and the queue drained cleanly.
+    expect(seen).toEqual(["levelUp", "streakMilestone", "badge"]);
+    expect(currentKind(tree)).toBeNull();
+  });
 });
