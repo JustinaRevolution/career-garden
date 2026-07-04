@@ -14,9 +14,12 @@
       "backgroundColor": "#0F1E1B"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.careergarden.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.careergarden.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
