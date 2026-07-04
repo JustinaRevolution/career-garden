@@ -853,6 +853,7 @@ export default function GardenScreen() {
               badges={state.earnedBadges.length}
               caption={shareCaption}
               showBlossoms={state.level >= 10}
+              bonusKoi={bonusKoi}
             />
 
             <View style={styles.captionRow}>

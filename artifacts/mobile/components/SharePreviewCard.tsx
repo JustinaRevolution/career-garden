@@ -16,6 +16,7 @@ interface SharePreviewCardProps {
   badges: number;
   caption: string;
   showBlossoms?: boolean;
+  bonusKoi?: number;
 }
 
 const BASE_WIDTH = 375;
@@ -25,7 +26,7 @@ const MAX_GARDEN_HEIGHT = 240;
 
 export const SharePreviewCard = React.forwardRef<View, SharePreviewCardProps>(
   function SharePreviewCard(
-    { gardenLevel, streak, xp, badges, caption, showBlossoms = false },
+    { gardenLevel, streak, xp, badges, caption, showBlossoms = false, bonusKoi = 0 },
     ref
   ) {
     const { width: screenWidth } = useWindowDimensions();
@@ -45,6 +46,7 @@ export const SharePreviewCard = React.forwardRef<View, SharePreviewCardProps>(
           gardenLevel={gardenLevel}
           height={gardenHeight}
           showBlossoms={showBlossoms}
+          bonusKoi={bonusKoi}
           staticMode
         />
 
