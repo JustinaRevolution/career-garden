@@ -89,6 +89,7 @@ export default function GardenScreen() {
   const [showHistory, setShowHistory] = useState(false);
   const [freezeFlashTrigger, setFreezeFlashTrigger] = useState(0);
   const [boostFlashTrigger, setBoostFlashTrigger] = useState(0);
+  const [cosmeticFlash, setCosmeticFlash] = useState<{ id: string; trigger: number }>({ id: "", trigger: 0 });
   const shareCardRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -235,7 +236,10 @@ export default function GardenScreen() {
           text: "Unlock",
           onPress: async () => {
             const ok = await buyCosmetic(cosmeticId);
-            if (ok) await equipCosmetic(cosmeticId);
+            if (ok) {
+              await equipCosmetic(cosmeticId);
+              setCosmeticFlash((f) => ({ id: cosmeticId, trigger: f.trigger + 1 }));
+            }
           },
         },
       ]);
@@ -633,6 +637,11 @@ export default function GardenScreen() {
                     },
                   ]}
                 >
+                  <XPCostFlash
+                    trigger={cosmeticFlash.id === c.id ? cosmeticFlash.trigger : 0}
+                    amount={c.price}
+                    color="#D4840A"
+                  />
                   <View style={[styles.cosmeticSwatch, { backgroundColor: c.value }]} />
                   <Text style={[styles.cosmeticName, { color: colors.foreground }]} numberOfLines={1}>
                     {c.name.replace(" Koi", "")}
