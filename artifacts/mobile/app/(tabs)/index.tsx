@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -82,6 +83,9 @@ export default function GardenScreen() {
   const [sharing, setSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareCaption, setShareCaption] = useState("");
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [previewAspect, setPreviewAspect] = useState(0.75);
   const [showHistory, setShowHistory] = useState(false);
   const [freezeFlashTrigger, setFreezeFlashTrigger] = useState(0);
   const [boostFlashTrigger, setBoostFlashTrigger] = useState(0);
@@ -246,7 +250,7 @@ export default function GardenScreen() {
     setShareModalVisible(true);
   }, [state.streak]);
 
-  const handleConfirmShare = useCallback(async () => {
+  const handlePreviewCapture = useCallback(async () => {
     if (Platform.OS === "web") {
       setShareModalVisible(false);
       Alert.alert("Sharing not available", "Sharing is only supported on iOS and Android.");
@@ -258,25 +262,51 @@ export default function GardenScreen() {
     try {
       setSharing(true);
       const uri = await captureRef(shareCardRef, { format: "png", quality: 1 });
+      Image.getSize(
+        uri,
+        (w, h) => {
+          if (h > 0) setPreviewAspect(w / h);
+        },
+        () => setPreviewAspect(0.75)
+      );
+      setPreviewUri(uri);
       setShareModalVisible(false);
-
-      const caption = shareCaption.trim() || `Day ${state.streak > 0 ? state.streak : 1} of my job search garden 🌸 #CareerGarden`;
-
-      if (Platform.OS === "ios") {
-        await Share.share({ message: caption, url: uri }, { subject: "My Career Garden" });
-      } else {
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(uri, { dialogTitle: caption, mimeType: "image/png" });
-        }
-        await Share.share({ message: caption });
-      }
+      setPreviewModalVisible(true);
     } catch {
-      Alert.alert("Could not share", "Something went wrong capturing your garden.");
+      Alert.alert("Could not preview", "Something went wrong capturing your garden.");
     } finally {
       setSharing(false);
     }
-  }, [shareCaption, state.streak, shareCardRef]);
+  }, [shareCardRef]);
+
+  const handleBackToEdit = useCallback(() => {
+    setPreviewModalVisible(false);
+    setShareModalVisible(true);
+  }, []);
+
+  const handleConfirmShare = useCallback(async () => {
+    if (!previewUri) return;
+
+    try {
+      setSharing(true);
+      const caption = shareCaption.trim() || `Day ${state.streak > 0 ? state.streak : 1} of my job search garden 🌸 #CareerGarden`;
+
+      if (Platform.OS === "ios") {
+        await Share.share({ message: caption, url: previewUri }, { subject: "My Career Garden" });
+      } else {
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(previewUri, { dialogTitle: caption, mimeType: "image/png" });
+        }
+        await Share.share({ message: caption });
+      }
+      setPreviewModalVisible(false);
+    } catch {
+      Alert.alert("Could not share", "Something went wrong sharing your garden.");
+    } finally {
+      setSharing(false);
+    }
+  }, [previewUri, shareCaption, state.streak]);
 
   if (!state.onboardingComplete) {
     return <Onboarding />;
@@ -750,6 +780,72 @@ export default function GardenScreen() {
                 <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                onPress={handlePreviewCapture}
+                disabled={sharing}
+                style={[
+                  styles.modalBtn,
+                  styles.confirmBtn,
+                  { backgroundColor: colors.primary, opacity: sharing ? 0.6 : 1 },
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalBtnText, { color: "#fff" }]}>
+                  {sharing ? "Capturing…" : "Preview 🌸"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Capture Preview Sheet */}
+      <Modal
+        visible={previewModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={handleBackToEdit}
+      >
+        <View style={styles.sheetOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleBackToEdit}
+          />
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Preview Your Card</Text>
+            <Text style={[styles.previewHint, { color: colors.mutedForeground }]}>
+              This is exactly what will be shared.
+            </Text>
+
+            {previewUri && (
+              <Image
+                source={{ uri: previewUri }}
+                style={[styles.previewImage, { aspectRatio: previewAspect, borderColor: colors.border }]}
+                resizeMode="contain"
+              />
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={handleBackToEdit}
+                disabled={sharing}
+                style={[styles.modalBtn, styles.cancelBtn, { borderColor: colors.border }]}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={handleConfirmShare}
                 disabled={sharing}
                 style={[
@@ -760,7 +856,7 @@ export default function GardenScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.modalBtnText, { color: "#fff" }]}>
-                  {sharing ? "Capturing…" : "Share 🌸"}
+                  {sharing ? "Sharing…" : "Share 🌸"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1049,6 +1145,16 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontFamily: "Inter_700Bold",
+  },
+  previewHint: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginTop: -8,
+  },
+  previewImage: {
+    width: "100%",
+    borderRadius: 20,
+    borderWidth: 1,
   },
   captionRow: {
     gap: 4,
