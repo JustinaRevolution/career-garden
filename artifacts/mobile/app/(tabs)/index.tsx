@@ -25,6 +25,7 @@ import { Onboarding } from "@/components/Onboarding";
 import { SharePreviewCard } from "@/components/SharePreviewCard";
 import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
+import { VolumeSlider } from "@/components/VolumeSlider";
 import { XPBar } from "@/components/XPBar";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
@@ -76,7 +77,9 @@ export default function GardenScreen() {
     equipCosmetic,
     getEquippedKoiColor,
   } = useGame();
-  const { muted, toggleMute } = useAmbientSound();
+  const { muted, toggleMute, volume, setVolume } = useAmbientSound();
+  const [volumeModalVisible, setVolumeModalVisible] = useState(false);
+  const longPressTriggeredRef = useRef(false);
   const { isSupported: notifSupported, requestPermission, scheduleDailyReminder, cancelDailyReminder } =
     useNotifications();
 
@@ -298,7 +301,21 @@ export default function GardenScreen() {
             <Text style={[styles.gardenState, { color: colors.mutedForeground }]}>{gardenName}</Text>
           </View>
           <View style={styles.headerRight}>
-            <Pressable onPress={toggleMute} style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Pressable
+              onPress={() => {
+                if (longPressTriggeredRef.current) {
+                  longPressTriggeredRef.current = false;
+                  return;
+                }
+                toggleMute();
+              }}
+              onLongPress={() => {
+                longPressTriggeredRef.current = true;
+                setVolumeModalVisible(true);
+              }}
+              delayLongPress={350}
+              style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
               <Ionicons name={muted ? "volume-mute" : "volume-medium"} size={18} color={colors.mutedForeground} />
             </Pressable>
             <TouchableOpacity
@@ -750,6 +767,75 @@ export default function GardenScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Ambient Volume Sheet */}
+      <Modal
+        visible={volumeModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setVolumeModalVisible(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setVolumeModalVisible(false)}
+          />
+          <View
+            style={[
+              styles.sheet,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                paddingBottom: insets.bottom + 16,
+              },
+            ]}
+          >
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Ambient Sound</Text>
+
+            <View style={styles.volumeRow}>
+              <Ionicons
+                name={muted ? "volume-mute" : "volume-medium"}
+                size={20}
+                color={colors.mutedForeground}
+              />
+              <View style={styles.volumeSliderWrap}>
+                <VolumeSlider
+                  value={muted ? 0 : volume}
+                  onValueChange={setVolume}
+                  trackColor={colors.border}
+                  fillColor={colors.primary}
+                  thumbColor={colors.primary}
+                />
+              </View>
+              <Text style={[styles.volumePercent, { color: colors.mutedForeground }]}>
+                {Math.round((muted ? 0 : volume) * 100)}%
+              </Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={toggleMute}
+                style={[styles.modalBtn, styles.cancelBtn, { borderColor: colors.border }]}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>
+                  {muted ? "Unmute" : "Mute"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setVolumeModalVisible(false)}
+                style={[styles.modalBtn, styles.confirmBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.modalBtnText, { color: "#fff" }]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -786,6 +872,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   shareButtonText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  volumeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  volumeSliderWrap: { flex: 1 },
+  volumePercent: { fontSize: 13, fontFamily: "Inter_600SemiBold", width: 38, textAlign: "right" },
   gardenHint: { alignItems: "center" },
   hintText: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
   section: { gap: 4 },

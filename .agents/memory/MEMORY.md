@@ -1,0 +1,1 @@
+- [RN Web custom slider gestures](rn-web-custom-slider.md) — drag sliders in a Modal can close it on web; use `.web.tsx` + native range input instead.
