@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -17,6 +18,11 @@ interface VolumeSliderProps {
 
 const TRACK_HEIGHT = 6;
 const THUMB_SIZE = 22;
+const HAPTIC_STEPS = 20;
+
+function triggerTick() {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+}
 
 export function VolumeSlider({
   value,
@@ -28,12 +34,14 @@ export function VolumeSlider({
   const width = useSharedValue(0);
   const progress = useSharedValue(value);
   const dragging = useSharedValue(false);
+  const lastHapticStep = useSharedValue(Math.round(value * HAPTIC_STEPS));
 
   useEffect(() => {
     if (!dragging.value) {
       progress.value = value;
+      lastHapticStep.value = Math.round(value * HAPTIC_STEPS);
     }
-  }, [value, dragging, progress]);
+  }, [value, dragging, progress, lastHapticStep]);
 
   const emit = useCallback(
     (v: number) => {
@@ -48,6 +56,11 @@ export function VolumeSlider({
     if (w <= 0) return;
     const ratio = Math.min(1, Math.max(0, x / w));
     progress.value = ratio;
+    const step = Math.round(ratio * HAPTIC_STEPS);
+    if (step !== lastHapticStep.value) {
+      lastHapticStep.value = step;
+      runOnJS(triggerTick)();
+    }
     runOnJS(emit)(ratio);
   };
 
