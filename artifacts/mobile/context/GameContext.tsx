@@ -139,6 +139,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const celebration = celebrationQueue[0] ?? null;
+  const freezeConsumedRef = useRef(false);
 
   useEffect(() => {
     loadState();
@@ -148,8 +149,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
         let updated = stateRef.current;
         let changed = false;
+        let freezeApplied = false;
 
         if (updated.dailyActionsDate !== today) {
           updated = {
@@ -160,6 +163,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           changed = true;
         }
 
+        const freezeAutoApplies =
+          !freezeConsumedRef.current &&
+          updated.lastActiveDate !== null &&
+          updated.lastActiveDate !== today &&
+          updated.lastActiveDate !== yesterday &&
+          updated.streakFreezes > 0;
+
+        if (freezeAutoApplies) {
+          freezeConsumedRef.current = true;
+          const log = appendLog(updated.powerUpLog, { type: "used-freeze", timestamp: Date.now(), detail: "Auto-applied to save your streak" });
+          updated = {
+            ...updated,
+            lastActiveDate: today,
+            streakFreezes: updated.streakFreezes - 1,
+            powerUpLog: log,
+          };
+          changed = true;
+          freezeApplied = true;
+        }
+
         if (updated.pendingStreakMilestone !== null) {
           const milestone = updated.pendingStreakMilestone;
           updated = { ...updated, pendingStreakMilestone: null };
@@ -168,8 +191,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (changed) {
+          stateRef.current = updated;
           setState(updated);
           saveState(updated);
+        }
+        if (freezeApplied) {
+          setStreakFreezeTrigger((t) => t + 1);
         }
       }
     });
