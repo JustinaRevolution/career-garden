@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { LevelUpOverlay } from "@/components/LevelUpOverlay";
+import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
 import { Celebration, useGame } from "@/context/GameContext";
 
@@ -43,6 +44,9 @@ export function CelebrationHost() {
     return (
       <StreakMilestoneOverlay trigger={trigger} milestone={active.milestone} onComplete={handleComplete} />
     );
+  }
+  if (active.kind === "streakFreeze") {
+    return <StreakFreezeToast trigger={trigger} onComplete={handleComplete} />;
   }
   return <BadgeEarnedOverlay trigger={trigger} badgeIds={active.badgeIds} onComplete={handleComplete} />;
 }

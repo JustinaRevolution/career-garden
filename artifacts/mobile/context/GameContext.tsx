@@ -83,6 +83,7 @@ function getStreakMilestone(prev: number, next: number): number | null {
 export type CelebrationInput =
   | { kind: "levelUp"; level: number }
   | { kind: "streakMilestone"; milestone: number }
+  | { kind: "streakFreeze" }
   | { kind: "badge"; badgeIds: string[] };
 
 export type Celebration = CelebrationInput & { id: number };
@@ -92,7 +93,6 @@ interface GameContextType {
   isLoaded: boolean;
   celebration: Celebration | null;
   advanceCelebration: () => void;
-  streakFreezeTrigger: number;
   completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean; newBadgeIds: string[] }>;
   completeDailyAction: (actionId: string) => Promise<{ newBadgeIds: string[] }>;
   isLessonCompleted: (lessonId: string) => boolean;
@@ -123,7 +123,6 @@ const GameContext = createContext<GameContextType | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [streakFreezeTrigger, setStreakFreezeTrigger] = useState(0);
   const [celebrationQueue, setCelebrationQueue] = useState<Celebration[]>([]);
   const celebrationIdRef = useRef(0);
   const todayActions = getTodayActions();
@@ -183,6 +182,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           freezeApplied = true;
         }
 
+        if (freezeApplied) {
+          enqueueCelebration({ kind: "streakFreeze" });
+        }
+
         if (updated.pendingStreakMilestone !== null) {
           const milestone = updated.pendingStreakMilestone;
           updated = { ...updated, pendingStreakMilestone: null };
@@ -194,9 +197,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           stateRef.current = updated;
           setState(updated);
           saveState(updated);
-        }
-        if (freezeApplied) {
-          setStreakFreezeTrigger((t) => t + 1);
         }
       }
     });
@@ -235,7 +235,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           };
           setState(withFreeze);
           await saveState(withFreeze);
-          setStreakFreezeTrigger((t) => t + 1);
+          enqueueCelebration({ kind: "streakFreeze" });
         } else {
           setState(migrated);
         }
@@ -451,7 +451,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       await saveState(newState);
 
       if (leveledUp) enqueueCelebration({ kind: "levelUp", level: finalLevel });
-      if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
+      if (freezeUsed) enqueueCelebration({ kind: "streakFreeze" });
       if (milestone !== null && !deferMilestone) {
         enqueueCelebration({ kind: "streakMilestone", milestone });
       }
@@ -520,7 +520,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       await saveState(newState);
 
       if (leveledUp) enqueueCelebration({ kind: "levelUp", level: finalLevel });
-      if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
+      if (freezeUsed) enqueueCelebration({ kind: "streakFreeze" });
       if (milestone !== null && !deferMilestone) {
         enqueueCelebration({ kind: "streakMilestone", milestone });
       }
@@ -775,7 +775,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isLoaded,
         celebration,
         advanceCelebration,
-        streakFreezeTrigger,
         completeLesson,
         completeDailyAction,
         isLessonCompleted,

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -11,11 +11,17 @@ import Animated, {
 
 interface Props {
   trigger: number;
+  onComplete?: () => void;
 }
 
-export function StreakFreezeToast({ trigger }: Props) {
+const TOTAL_MS = 2950;
+
+export function StreakFreezeToast({ trigger, onComplete }: Props) {
   const translateY = useSharedValue(-100);
   const opacity = useSharedValue(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (trigger === 0) return;
@@ -27,6 +33,12 @@ export function StreakFreezeToast({ trigger }: Props) {
       withTiming(1, { duration: 250 }),
       withDelay(2200, withTiming(0, { duration: 500 }))
     );
+
+    if (doneTimer.current) clearTimeout(doneTimer.current);
+    doneTimer.current = setTimeout(() => onCompleteRef.current?.(), TOTAL_MS);
+    return () => {
+      if (doneTimer.current) clearTimeout(doneTimer.current);
+    };
   }, [trigger]);
 
   const animStyle = useAnimatedStyle(() => ({

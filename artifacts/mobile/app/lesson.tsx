@@ -27,7 +27,6 @@ import { useColors } from "@/hooks/useColors";
 import { MODULES, Quiz, QUIZ_XP } from "@/data/content";
 import { getQuiz } from "@/data/quizzes";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
-import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -251,7 +250,6 @@ export default function LessonScreen() {
     passQuiz,
     isQuizPassed,
     state,
-    streakFreezeTrigger,
   } = useGame();
   const listRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -320,7 +318,6 @@ export default function LessonScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ConfettiOverlay trigger={confettiTrigger} />
-      <StreakFreezeToast trigger={streakFreezeTrigger} />
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color={colors.foreground} />

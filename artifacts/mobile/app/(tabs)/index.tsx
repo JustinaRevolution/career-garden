@@ -22,7 +22,6 @@ import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
 import { Onboarding } from "@/components/Onboarding";
 import { SharePreviewCard } from "@/components/SharePreviewCard";
-import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { XPBar } from "@/components/XPBar";
 import { XPCostFlash } from "@/components/XPCostFlash";
@@ -65,7 +64,6 @@ export default function GardenScreen() {
     todayActions,
     activateXPBoost,
     isXPBoostActive,
-    streakFreezeTrigger,
     buyStreakFreeze,
     buyXPBoost,
     clearGoal,
@@ -286,8 +284,6 @@ export default function GardenScreen() {
 
   return (
     <View style={styles.rootContainer}>
-      <StreakFreezeToast trigger={streakFreezeTrigger} />
-
       <ScrollView
         style={[styles.root, { backgroundColor: colors.background }]}
         contentContainerStyle={[
