@@ -371,7 +371,13 @@ export default function GardenScreen() {
                   : "days left"}
               </Text>
             </View>
-            <Pressable onPress={handleClearGoal} hitSlop={8} style={styles.goalClear}>
+            <Pressable
+              onPress={handleClearGoal}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Clear goal"
+              style={styles.goalClear}
+            >
               <Ionicons name="close-circle" size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>

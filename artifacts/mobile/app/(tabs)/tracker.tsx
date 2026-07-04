@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -86,6 +87,9 @@ export default function TrackerScreen() {
     } else {
       await addApplication(company, role, status, notes);
     }
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
     setModalVisible(false);
   }, [company, role, notes, status, editing, addApplication, updateApplication]);
 
@@ -93,7 +97,16 @@ export default function TrackerScreen() {
     (app: JobApplication) => {
       Alert.alert("Delete application?", `Remove ${app.role} at ${app.company}?`, [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => deleteApplication(app.id) },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            if (Platform.OS !== "web") {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            }
+            deleteApplication(app.id);
+          },
+        },
       ]);
     },
     [deleteApplication]
@@ -165,7 +178,12 @@ export default function TrackerScreen() {
                   <Text style={[styles.appDate, { color: colors.mutedForeground }]}>
                     {new Date(app.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   </Text>
-                  <TouchableOpacity onPress={() => handleDelete(app)} hitSlop={8}>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(app)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${app.role} at ${app.company}`}
+                  >
                     <Ionicons name="trash-outline" size={18} color={colors.mutedForeground} />
                   </TouchableOpacity>
                 </View>
@@ -178,6 +196,8 @@ export default function TrackerScreen() {
       <TouchableOpacity
         onPress={openAdd}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Add application"
         style={[styles.fab, { backgroundColor: colors.primary, bottom: bottomPad + 90 }]}
       >
         <Ionicons name="add" size={28} color={colors.primaryForeground} />
