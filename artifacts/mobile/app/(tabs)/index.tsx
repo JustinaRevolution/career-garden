@@ -26,6 +26,7 @@ import { SharePreviewCard } from "@/components/SharePreviewCard";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { XPBar } from "@/components/XPBar";
 import { XPCostFlash } from "@/components/XPCostFlash";
+import { XPGainFlash } from "@/components/XPGainFlash";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useAmbientSound } from "@/hooks/useAmbientSound";
@@ -90,6 +91,7 @@ export default function GardenScreen() {
   const [freezeFlashTrigger, setFreezeFlashTrigger] = useState(0);
   const [boostFlashTrigger, setBoostFlashTrigger] = useState(0);
   const [cosmeticFlash, setCosmeticFlash] = useState<{ id: string; trigger: number }>({ id: "", trigger: 0 });
+  const [xpGainFlash, setXpGainFlash] = useState<{ amount: number; trigger: number }>({ amount: 0, trigger: 0 });
   const shareCardRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -117,10 +119,15 @@ export default function GardenScreen() {
 
   const handleDailyAction = useCallback(
     async (actionId: string) => {
+      const alreadyDone = state.dailyActionsCompleted.includes(actionId);
+      const gained = 25 * (isXPBoostActive() ? 2 : 1);
       await completeDailyAction(actionId);
       setBurstTrigger((n) => n + 1);
+      if (!alreadyDone) {
+        setXpGainFlash((f) => ({ amount: gained, trigger: f.trigger + 1 }));
+      }
     },
-    [completeDailyAction]
+    [completeDailyAction, state.dailyActionsCompleted, isXPBoostActive]
   );
 
   const handleActivateBoost = useCallback(async () => {
@@ -374,7 +381,14 @@ export default function GardenScreen() {
         </View>
 
         {/* XP Bar */}
-        <XPBar xp={state.xp} streak={state.streak} compact />
+        <View style={styles.xpBarWrap}>
+          <XPBar xp={state.xp} streak={state.streak} compact />
+          <XPGainFlash
+            trigger={xpGainFlash.trigger}
+            amount={xpGainFlash.amount}
+            color={colors.primary}
+          />
+        </View>
 
         {/* Garden */}
         <GardenScene
@@ -996,6 +1010,7 @@ const styles = StyleSheet.create({
   },
   volumeSliderWrap: { flex: 1 },
   volumePercent: { fontSize: 13, fontFamily: "Inter_600SemiBold", width: 38, textAlign: "right" },
+  xpBarWrap: { position: "relative" },
   gardenHint: { alignItems: "center" },
   hintText: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
   section: { gap: 4 },
