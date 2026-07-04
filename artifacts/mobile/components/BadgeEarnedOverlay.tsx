@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -13,33 +13,59 @@ import Animated, {
 
 import { BADGES } from "@/data/content";
 
+type Badge = typeof BADGES[number];
+
 interface Props {
-  badgeId: string | null;
+  badgeIds: string[];
   trigger: number;
 }
 
-export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
+const ENTER_MS = 250;
+const DISPLAY_MS = 2500;
+const EXIT_MS = 500;
+const GAP_MS = 250;
+const CYCLE_MS = ENTER_MS + DISPLAY_MS + EXIT_MS + GAP_MS;
+
+export function BadgeEarnedOverlay({ badgeIds, trigger }: Props) {
   const translateY = useSharedValue(120);
   const opacity = useSharedValue(0);
-  const badgeRef = useRef<typeof BADGES[number] | null>(null);
-
-  if (badgeId) {
-    const found = BADGES.find((b) => b.id === badgeId);
-    if (found) badgeRef.current = found;
-  }
-
-  const badge = badgeRef.current;
+  const [display, setDisplay] = useState<{
+    badge: Badge;
+    index: number;
+    total: number;
+  } | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    if (trigger === 0 || !badge) return;
-    translateY.value = 120;
-    opacity.value = 0;
+    if (trigger === 0 || badgeIds.length === 0) return;
 
-    translateY.value = withSpring(0, { damping: 14, stiffness: 160 });
-    opacity.value = withSequence(
-      withTiming(1, { duration: 250 }),
-      withDelay(2500, withTiming(0, { duration: 500 }))
-    );
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+
+    const badges = badgeIds
+      .map((id) => BADGES.find((b) => b.id === id))
+      .filter((b): b is Badge => Boolean(b));
+
+    if (badges.length === 0) return;
+
+    badges.forEach((badge, i) => {
+      const showTimer = setTimeout(() => {
+        setDisplay({ badge, index: i, total: badges.length });
+        translateY.value = 120;
+        opacity.value = 0;
+        translateY.value = withSpring(0, { damping: 14, stiffness: 160 });
+        opacity.value = withSequence(
+          withTiming(1, { duration: ENTER_MS }),
+          withDelay(DISPLAY_MS, withTiming(0, { duration: EXIT_MS }))
+        );
+      }, i * CYCLE_MS);
+      timers.current.push(showTimer);
+    });
+
+    return () => {
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
+    };
   }, [trigger]);
 
   const animStyle = useAnimatedStyle(() => ({
@@ -47,7 +73,9 @@ export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
     opacity: opacity.value,
   }));
 
-  if (!badge) return null;
+  if (!display) return null;
+
+  const { badge, index, total } = display;
 
   function handlePress() {
     opacity.value = withTiming(0, { duration: 200 });
@@ -70,7 +98,9 @@ export function BadgeEarnedOverlay({ badgeId, trigger }: Props) {
             <Ionicons name={badge.icon} size={28} color={badge.color} />
           </View>
           <View style={styles.textBlock}>
-            <Text style={styles.earned}>Badge Earned!</Text>
+            <Text style={styles.earned}>
+              Badge Earned!{total > 1 ? ` (${index + 1}/${total})` : ""}
+            </Text>
             <Text style={[styles.name, { color: badge.color }]}>{badge.title}</Text>
             <Text style={styles.xp}>+{badge.xpReward} XP · Tap to view</Text>
           </View>

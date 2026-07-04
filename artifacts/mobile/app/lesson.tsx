@@ -263,7 +263,7 @@ export default function LessonScreen() {
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [levelUpTrigger, setLevelUpTrigger] = useState(0);
   const [badgeTrigger, setBadgeTrigger] = useState(0);
-  const [badgeId, setBadgeId] = useState<string | null>(null);
+  const [badgeIds, setBadgeIds] = useState<string[]>([]);
 
   const module = MODULES.find((m) => m.id === moduleId);
   const lesson = module?.lessons.find((l) => l.id === lessonId);
@@ -289,7 +289,7 @@ export default function LessonScreen() {
       setLevelUpTrigger((t) => t + 1);
     }
     if (newBadgeIds.length > 0) {
-      setBadgeId(newBadgeIds[0]);
+      setBadgeIds(newBadgeIds);
       setTimeout(() => setBadgeTrigger((t) => t + 1), 1000);
     }
   }, [lesson.id, module.id]);
@@ -336,7 +336,7 @@ export default function LessonScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ConfettiOverlay trigger={confettiTrigger} />
       <LevelUpOverlay trigger={levelUpTrigger} level={state.level} />
-      <BadgeEarnedOverlay trigger={badgeTrigger} badgeId={badgeId} />
+      <BadgeEarnedOverlay trigger={badgeTrigger} badgeIds={badgeIds} />
       <StreakFreezeToast trigger={streakFreezeTrigger} />
       <StreakMilestoneOverlay trigger={streakMilestoneTrigger} milestone={streakMilestoneValue} />
       <View style={[styles.topBar, { paddingTop: topPad + 8 }]}>

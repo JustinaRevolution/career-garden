@@ -88,7 +88,7 @@ export default function GardenScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareCaption, setShareCaption] = useState("");
   const [badgeTrigger, setBadgeTrigger] = useState(0);
-  const [badgeId, setBadgeId] = useState<string | null>(null);
+  const [badgeIds, setBadgeIds] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const shareCardRef = useRef<View>(null);
 
@@ -120,7 +120,7 @@ export default function GardenScreen() {
       const { newBadgeIds } = await completeDailyAction(actionId);
       setBurstTrigger((n) => n + 1);
       if (newBadgeIds.length > 0) {
-        setBadgeId(newBadgeIds[0]);
+        setBadgeIds(newBadgeIds);
         setTimeout(() => setBadgeTrigger((t) => t + 1), 1000);
       }
     },
@@ -281,7 +281,7 @@ export default function GardenScreen() {
 
   return (
     <View style={styles.rootContainer}>
-      <BadgeEarnedOverlay trigger={badgeTrigger} badgeId={badgeId} />
+      <BadgeEarnedOverlay trigger={badgeTrigger} badgeIds={badgeIds} />
       <StreakFreezeToast trigger={streakFreezeTrigger} />
       <StreakMilestoneOverlay trigger={streakMilestoneTrigger} milestone={streakMilestoneValue} />
 
