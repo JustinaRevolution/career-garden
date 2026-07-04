@@ -15,6 +15,7 @@ import {
   ApplicationStatus,
   MODULES,
   getTodayActions,
+  POWER_UP_CAP,
   POWER_UP_MILESTONES,
   PowerUpEvent,
   QUIZ_XP,
@@ -104,6 +105,8 @@ interface GameContextType {
   isXPBoostActive: () => boolean;
   buyStreakFreeze: () => Promise<boolean>;
   buyXPBoost: () => Promise<boolean>;
+  discardStreakFreeze: () => Promise<boolean>;
+  discardXPBoost: () => Promise<boolean>;
   addApplication: (company: string, role: string, status: ApplicationStatus, notes?: string) => Promise<void>;
   updateApplication: (id: string, updates: Partial<Pick<JobApplication, "company" | "role" | "status" | "notes">>) => Promise<void>;
   deleteApplication: (id: string) => Promise<void>;
@@ -388,9 +391,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const newFreezeThresholds = Math.floor(newBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
     const earnedFreezes = newFreezeThresholds - prevFreezeThresholds;
     if (earnedFreezes > 0) {
-      streakFreezes += earnedFreezes;
-      for (let i = 0; i < earnedFreezes; i++) {
-        updatedLog = appendLog(updatedLog, { type: "earned-freeze", timestamp: Date.now(), detail: `${newBadgeCount} badge${newBadgeCount !== 1 ? "s" : ""} reached` });
+      const grantedFreezes = Math.min(earnedFreezes, POWER_UP_CAP - streakFreezes);
+      if (grantedFreezes > 0) {
+        streakFreezes += grantedFreezes;
+        for (let i = 0; i < grantedFreezes; i++) {
+          updatedLog = appendLog(updatedLog, { type: "earned-freeze", timestamp: Date.now(), detail: `${newBadgeCount} badge${newBadgeCount !== 1 ? "s" : ""} reached` });
+        }
       }
     }
 
@@ -398,9 +404,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const newBoostThresholds = Math.floor(newLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
     const earnedBoosts = newBoostThresholds - prevBoostThresholds;
     if (earnedBoosts > 0) {
-      xpBoosts += earnedBoosts;
-      for (let i = 0; i < earnedBoosts; i++) {
-        updatedLog = appendLog(updatedLog, { type: "earned-boost", timestamp: Date.now(), detail: `${newLessonCount} lesson${newLessonCount !== 1 ? "s" : ""} completed` });
+      const grantedBoosts = Math.min(earnedBoosts, POWER_UP_CAP - xpBoosts);
+      if (grantedBoosts > 0) {
+        xpBoosts += grantedBoosts;
+        for (let i = 0; i < grantedBoosts; i++) {
+          updatedLog = appendLog(updatedLog, { type: "earned-boost", timestamp: Date.now(), detail: `${newLessonCount} lesson${newLessonCount !== 1 ? "s" : ""} completed` });
+        }
       }
     }
 
@@ -577,6 +586,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const buyStreakFreeze = useCallback(async (): Promise<boolean> => {
     const current = stateRef.current;
     if (current.xp < XP_SHOP.streakFreezePrice) return false;
+    if (current.streakFreezes >= POWER_UP_CAP) return false;
     const log = appendLog(current.powerUpLog, { type: "bought-freeze", timestamp: Date.now(), detail: "Purchased from XP Shop" });
     const newState: GameState = {
       ...current,
@@ -592,11 +602,40 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const buyXPBoost = useCallback(async (): Promise<boolean> => {
     const current = stateRef.current;
     if (current.xp < XP_SHOP.xpBoostPrice) return false;
+    if (current.xpBoosts >= POWER_UP_CAP) return false;
     const log = appendLog(current.powerUpLog, { type: "bought-boost", timestamp: Date.now(), detail: "Purchased from XP Shop" });
     const newState: GameState = {
       ...current,
       xp: current.xp - XP_SHOP.xpBoostPrice,
       xpBoosts: current.xpBoosts + 1,
+      powerUpLog: log,
+    };
+    setState(newState);
+    await saveState(newState);
+    return true;
+  }, []);
+
+  const discardStreakFreeze = useCallback(async (): Promise<boolean> => {
+    const current = stateRef.current;
+    if (current.streakFreezes <= 0) return false;
+    const log = appendLog(current.powerUpLog, { type: "discarded-freeze", timestamp: Date.now(), detail: "Discarded to free up space" });
+    const newState: GameState = {
+      ...current,
+      streakFreezes: current.streakFreezes - 1,
+      powerUpLog: log,
+    };
+    setState(newState);
+    await saveState(newState);
+    return true;
+  }, []);
+
+  const discardXPBoost = useCallback(async (): Promise<boolean> => {
+    const current = stateRef.current;
+    if (current.xpBoosts <= 0) return false;
+    const log = appendLog(current.powerUpLog, { type: "discarded-boost", timestamp: Date.now(), detail: "Discarded to free up space" });
+    const newState: GameState = {
+      ...current,
+      xpBoosts: current.xpBoosts - 1,
       powerUpLog: log,
     };
     setState(newState);
@@ -804,6 +843,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isXPBoostActive,
         buyStreakFreeze,
         buyXPBoost,
+        discardStreakFreeze,
+        discardXPBoost,
         addApplication,
         updateApplication,
         deleteApplication,

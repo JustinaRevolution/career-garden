@@ -36,6 +36,7 @@ import {
   DEFAULT_KOI_COLOR,
   getGardenLevel,
   getWeekStats,
+  POWER_UP_CAP,
   POWER_UP_MILESTONES,
   XP_SHOP,
   PowerUpEvent,
@@ -54,6 +55,8 @@ function eventLabel(type: PowerUpEvent["type"]): { emoji: string; text: string }
     case "used-boost":    return { emoji: "⚡", text: "2x XP Boost activated" };
     case "bought-freeze": return { emoji: "🛒", text: "Bought Streak Freeze" };
     case "bought-boost":  return { emoji: "🛒", text: "Bought XP Boost" };
+    case "discarded-freeze": return { emoji: "🗑️", text: "Discarded Streak Freeze" };
+    case "discarded-boost":  return { emoji: "🗑️", text: "Discarded XP Boost" };
   }
 }
 
@@ -68,6 +71,8 @@ export default function GardenScreen() {
     isXPBoostActive,
     buyStreakFreeze,
     buyXPBoost,
+    discardStreakFreeze,
+    discardXPBoost,
     clearGoal,
     setNotificationsEnabled,
     buyCosmetic,
@@ -114,8 +119,10 @@ export default function GardenScreen() {
   const nextBoostAt = POWER_UP_MILESTONES.lessonsPerXPBoost;
   const lessonsUntilBoost = nextBoostAt - (state.completedLessons.length % nextBoostAt);
 
-  const canBuyFreeze = state.xp >= XP_SHOP.streakFreezePrice;
-  const canBuyBoost = state.xp >= XP_SHOP.xpBoostPrice;
+  const freezeAtCap = state.streakFreezes >= POWER_UP_CAP;
+  const boostAtCap = state.xpBoosts >= POWER_UP_CAP;
+  const canBuyFreeze = state.xp >= XP_SHOP.streakFreezePrice && !freezeAtCap;
+  const canBuyBoost = state.xp >= XP_SHOP.xpBoostPrice && !boostAtCap;
 
   const handleDailyAction = useCallback(
     async (actionId: string) => {
@@ -132,6 +139,17 @@ export default function GardenScreen() {
 
   const handleActivateBoost = useCallback(async () => {
     if (boostActive) {
+      if (boostAtCap) {
+        Alert.alert(
+          "Storage Full",
+          `You're holding the max of ${POWER_UP_CAP} XP Boosts and one is already active. Discard one to make room in the shop.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Discard One", style: "destructive", onPress: async () => { await discardXPBoost(); } },
+          ]
+        );
+        return;
+      }
       Alert.alert("Boost Already Active", `Expires in ${boostExpiresIn}h.`);
       return;
     }
@@ -143,9 +161,31 @@ export default function GardenScreen() {
       { text: "Cancel", style: "cancel" },
       { text: "Activate!", onPress: async () => { await activateXPBoost(); } },
     ]);
-  }, [boostActive, boostExpiresIn, state.xpBoosts, lessonsUntilBoost, activateXPBoost]);
+  }, [boostActive, boostAtCap, boostExpiresIn, state.xpBoosts, lessonsUntilBoost, activateXPBoost, discardXPBoost]);
+
+  const handleFreezeCard = useCallback(async () => {
+    if (state.streakFreezes <= 0) {
+      Alert.alert("No Streak Freezes", `Earn ${badgesUntilFreeze} more badge${badgesUntilFreeze !== 1 ? "s" : ""} to get one.`);
+      return;
+    }
+    const title = freezeAtCap ? "Storage Full" : "Streak Freeze";
+    const message = freezeAtCap
+      ? `You're holding the max of ${POWER_UP_CAP} Streak Freezes. Discard one to make room in the shop. A saved freeze still auto-applies if you miss a day.`
+      : `You have ${state.streakFreezes}. Streak Freezes auto-apply if you miss a day. Discard one to free up space?`;
+    Alert.alert(title, message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Discard One", style: "destructive", onPress: async () => { await discardStreakFreeze(); } },
+    ]);
+  }, [state.streakFreezes, freezeAtCap, badgesUntilFreeze, discardStreakFreeze]);
 
   const handleBuyFreeze = useCallback(async () => {
+    if (freezeAtCap) {
+      Alert.alert(
+        "Storage Full",
+        `You already hold the max of ${POWER_UP_CAP} Streak Freezes. Use or discard one from Power-Ups above to make room.`
+      );
+      return;
+    }
     if (!canBuyFreeze) {
       Alert.alert("Not Enough XP", `You need ${XP_SHOP.streakFreezePrice} XP to buy a Streak Freeze.`);
       return;
@@ -164,9 +204,16 @@ export default function GardenScreen() {
         },
       ]
     );
-  }, [canBuyFreeze, buyStreakFreeze]);
+  }, [canBuyFreeze, freezeAtCap, buyStreakFreeze]);
 
   const handleBuyBoost = useCallback(async () => {
+    if (boostAtCap) {
+      Alert.alert(
+        "Storage Full",
+        `You already hold the max of ${POWER_UP_CAP} XP Boosts. Activate or discard one from Power-Ups above to make room.`
+      );
+      return;
+    }
     if (!canBuyBoost) {
       Alert.alert("Not Enough XP", `You need ${XP_SHOP.xpBoostPrice} XP to buy a 2x XP Boost.`);
       return;
@@ -185,7 +232,7 @@ export default function GardenScreen() {
         },
       ]
     );
-  }, [canBuyBoost, buyXPBoost]);
+  }, [canBuyBoost, boostAtCap, buyXPBoost]);
 
   const weekStats = getWeekStats(state.dailyLog);
   const prevWeekStats = getWeekStats(state.dailyLog, 7);
@@ -534,24 +581,43 @@ export default function GardenScreen() {
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Power-Ups</Text>
           <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>Earn by completing lessons & badges</Text>
           <View style={styles.powerUpRow}>
-            <View style={[styles.powerUpCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TouchableOpacity
+              onPress={handleFreezeCard}
+              activeOpacity={0.8}
+              style={[styles.powerUpCard, {
+                backgroundColor: colors.card,
+                borderColor: freezeAtCap ? colors.primary : colors.border,
+              }]}
+            >
+              {freezeAtCap && (
+                <View style={[styles.capPill, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.capPillText}>FULL</Text>
+                </View>
+              )}
               <Text style={styles.powerUpEmoji}>🧊</Text>
               <Text style={[styles.powerUpName, { color: colors.foreground }]}>Streak Freeze</Text>
               <Text style={[styles.powerUpCount, { color: colors.primary }]}>×{state.streakFreezes}</Text>
               <Text style={[styles.powerUpHint, { color: colors.mutedForeground }]}>
-                {state.streakFreezes > 0
+                {freezeAtCap
+                  ? "Full — tap to discard one"
+                  : state.streakFreezes > 0
                   ? "Auto-applies if you miss a day"
                   : `${badgesUntilFreeze} badge${badgesUntilFreeze !== 1 ? "s" : ""} to earn one`}
               </Text>
-            </View>
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={handleActivateBoost}
               activeOpacity={0.8}
               style={[styles.powerUpCard, {
                 backgroundColor: boostActive ? colors.accent + "22" : colors.card,
-                borderColor: boostActive ? colors.accent : colors.border,
+                borderColor: boostActive || boostAtCap ? colors.accent : colors.border,
               }]}
             >
+              {boostAtCap && (
+                <View style={[styles.capPill, { backgroundColor: colors.accent }]}>
+                  <Text style={styles.capPillText}>FULL</Text>
+                </View>
+              )}
               <Text style={styles.powerUpEmoji}>⚡</Text>
               <Text style={[styles.powerUpName, { color: boostActive ? colors.accent : colors.foreground }]}>2x XP Boost</Text>
               <Text style={[styles.powerUpCount, { color: boostActive ? colors.accent : colors.xpGold }]}>
@@ -560,12 +626,19 @@ export default function GardenScreen() {
               <Text style={[styles.powerUpHint, { color: colors.mutedForeground }]}>
                 {boostActive
                   ? `Expires in ${boostExpiresIn}h`
+                  : boostAtCap
+                  ? "Full — tap to activate one"
                   : state.xpBoosts > 0
                   ? "Tap to activate for 24h"
                   : `${lessonsUntilBoost} lesson${lessonsUntilBoost !== 1 ? "s" : ""} to earn one`}
               </Text>
             </TouchableOpacity>
           </View>
+          {(freezeAtCap || boostAtCap) && (
+            <Text style={[styles.capNote, { color: colors.mutedForeground }]}>
+              Power-ups are capped at {POWER_UP_CAP} each. Use or discard one above to buy more in the shop.
+            </Text>
+          )}
         </View>
 
         {/* XP Shop */}
@@ -587,7 +660,7 @@ export default function GardenScreen() {
               <Text style={[styles.shopItemName, { color: colors.foreground }]}>Streak Freeze</Text>
               <View style={[styles.shopPricePill, { backgroundColor: canBuyFreeze ? colors.primary + "22" : colors.muted }]}>
                 <Text style={[styles.shopPrice, { color: canBuyFreeze ? colors.primary : colors.mutedForeground }]}>
-                  {XP_SHOP.streakFreezePrice} XP
+                  {freezeAtCap ? "Full" : `${XP_SHOP.streakFreezePrice} XP`}
                 </Text>
               </View>
             </Pressable>
@@ -603,7 +676,7 @@ export default function GardenScreen() {
               <Text style={[styles.shopItemName, { color: colors.foreground }]}>2x XP Boost</Text>
               <View style={[styles.shopPricePill, { backgroundColor: canBuyBoost ? "#F5A54A22" : colors.muted }]}>
                 <Text style={[styles.shopPrice, { color: canBuyBoost ? "#D4840A" : colors.mutedForeground }]}>
-                  {XP_SHOP.xpBoostPrice} XP
+                  {boostAtCap ? "Full" : `${XP_SHOP.xpBoostPrice} XP`}
                 </Text>
               </View>
             </Pressable>
@@ -1036,11 +1109,23 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     gap: 4,
+    position: "relative",
+    overflow: "hidden",
   },
   powerUpEmoji: { fontSize: 28, marginBottom: 2 },
   powerUpName: { fontSize: 13, fontFamily: "Inter_700Bold", textAlign: "center" },
   powerUpCount: { fontSize: 20, fontFamily: "Inter_700Bold" },
   powerUpHint: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 15 },
+  capPill: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  capPillText: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#FFFFFF", letterSpacing: 0.5 },
+  capNote: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 10, lineHeight: 16 },
   shopRow: { flexDirection: "row", gap: 10, marginTop: 6 },
   shopCard: {
     flex: 1,

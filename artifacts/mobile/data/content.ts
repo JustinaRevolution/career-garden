@@ -798,6 +798,8 @@ export const POWER_UP_MILESTONES = {
   lessonsPerXPBoost: 10,
 } as const;
 
+export const POWER_UP_CAP = 3;
+
 export const XP_SHOP = {
   streakFreezePrice: 150,
   xpBoostPrice: 200,
@@ -809,7 +811,9 @@ export type PowerUpEventType =
   | "used-freeze"
   | "used-boost"
   | "bought-freeze"
-  | "bought-boost";
+  | "bought-boost"
+  | "discarded-freeze"
+  | "discarded-boost";
 
 export interface PowerUpEvent {
   type: PowerUpEventType;
