@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -12,13 +12,19 @@ import Animated, {
 interface Props {
   trigger: number;
   level: number;
+  onComplete?: () => void;
 }
 
-export function LevelUpOverlay({ trigger, level }: Props) {
+const TOTAL_MS = 2100;
+
+export function LevelUpOverlay({ trigger, level, onComplete }: Props) {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(0.3);
   const ringOpacity = useSharedValue(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (trigger === 0) return;
@@ -40,6 +46,12 @@ export function LevelUpOverlay({ trigger, level }: Props) {
       withDelay(800, withTiming(0, { duration: 700 }))
     );
     ringScale.value = withTiming(1.8, { duration: 1400 });
+
+    if (doneTimer.current) clearTimeout(doneTimer.current);
+    doneTimer.current = setTimeout(() => onCompleteRef.current?.(), TOTAL_MS);
+    return () => {
+      if (doneTimer.current) clearTimeout(doneTimer.current);
+    };
   }, [trigger]);
 
   const containerStyle = useAnimatedStyle(() => ({

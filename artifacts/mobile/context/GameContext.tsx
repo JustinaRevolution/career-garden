@@ -80,12 +80,18 @@ function getStreakMilestone(prev: number, next: number): number | null {
   return null;
 }
 
+export type CelebrationInput =
+  | { kind: "levelUp"; level: number }
+  | { kind: "streakMilestone"; milestone: number }
+  | { kind: "badge"; badgeIds: string[] };
+
+export type Celebration = CelebrationInput & { id: number };
+
 interface GameContextType {
   state: GameState;
   isLoaded: boolean;
-  levelUpTrigger: number;
-  streakMilestoneTrigger: number;
-  streakMilestoneValue: number;
+  celebration: Celebration | null;
+  advanceCelebration: () => void;
   streakFreezeTrigger: number;
   completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean; newBadgeIds: string[] }>;
   completeDailyAction: (actionId: string) => Promise<{ newBadgeIds: string[] }>;
@@ -117,11 +123,22 @@ const GameContext = createContext<GameContextType | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [levelUpTrigger, setLevelUpTrigger] = useState(0);
-  const [streakMilestoneTrigger, setStreakMilestoneTrigger] = useState(0);
-  const [streakMilestoneValue, setStreakMilestoneValue] = useState(0);
   const [streakFreezeTrigger, setStreakFreezeTrigger] = useState(0);
+  const [celebrationQueue, setCelebrationQueue] = useState<Celebration[]>([]);
+  const celebrationIdRef = useRef(0);
   const todayActions = getTodayActions();
+
+  const enqueueCelebration = useCallback((item: CelebrationInput) => {
+    celebrationIdRef.current += 1;
+    const withId = { ...item, id: celebrationIdRef.current } as Celebration;
+    setCelebrationQueue((q) => [...q, withId]);
+  }, []);
+
+  const advanceCelebration = useCallback(() => {
+    setCelebrationQueue((q) => q.slice(1));
+  }, []);
+
+  const celebration = celebrationQueue[0] ?? null;
 
   useEffect(() => {
     loadState();
@@ -147,8 +164,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           const milestone = updated.pendingStreakMilestone;
           updated = { ...updated, pendingStreakMilestone: null };
           changed = true;
-          setStreakMilestoneValue(milestone);
-          setStreakMilestoneTrigger((t) => t + 1);
+          enqueueCelebration({ kind: "streakMilestone", milestone });
         }
 
         if (changed) {
@@ -407,17 +423,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState(newState);
       await saveState(newState);
 
-      if (leveledUp) setLevelUpTrigger((t) => t + 1);
+      if (leveledUp) enqueueCelebration({ kind: "levelUp", level: finalLevel });
       if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
-
       if (milestone !== null && !deferMilestone) {
-        setStreakMilestoneValue(milestone);
-        setStreakMilestoneTrigger((t) => t + 1);
+        enqueueCelebration({ kind: "streakMilestone", milestone });
+      }
+      if (newlyEarnedIds.length > 0) {
+        enqueueCelebration({ kind: "badge", badgeIds: newlyEarnedIds });
       }
 
       return { leveledUp, newBadgeIds: newlyEarnedIds };
     },
-    []
+    [enqueueCelebration]
   );
 
   const completeDailyAction = useCallback(
@@ -475,17 +492,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setState(newState);
       await saveState(newState);
 
-      if (leveledUp) setLevelUpTrigger((t) => t + 1);
+      if (leveledUp) enqueueCelebration({ kind: "levelUp", level: finalLevel });
       if (freezeUsed) setStreakFreezeTrigger((t) => t + 1);
-
       if (milestone !== null && !deferMilestone) {
-        setStreakMilestoneValue(milestone);
-        setStreakMilestoneTrigger((t) => t + 1);
+        enqueueCelebration({ kind: "streakMilestone", milestone });
+      }
+      if (newlyEarnedIds.length > 0) {
+        enqueueCelebration({ kind: "badge", badgeIds: newlyEarnedIds });
       }
 
       return { newBadgeIds: newlyEarnedIds };
     },
-    []
+    [enqueueCelebration]
   );
 
   const activateXPBoost = useCallback(async (): Promise<boolean> => {
@@ -568,9 +586,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       };
       setState(newState);
       await saveState(newState);
-      if (leveledUp) setLevelUpTrigger((t) => t + 1);
+      if (leveledUp) enqueueCelebration({ kind: "levelUp", level: finalLevel });
     },
-    []
+    [enqueueCelebration]
   );
 
   const updateApplication = useCallback(
@@ -627,9 +645,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
     setState(newState);
     await saveState(newState);
-    if (leveledUp) setLevelUpTrigger((t) => t + 1);
+    if (leveledUp) enqueueCelebration({ kind: "levelUp", level: finalLevel });
     return true;
-  }, []);
+  }, [enqueueCelebration]);
 
   const isQuizPassed = useCallback(
     (lessonId: string) => state.quizzesPassed.includes(lessonId),
@@ -728,9 +746,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       value={{
         state,
         isLoaded,
-        levelUpTrigger,
-        streakMilestoneTrigger,
-        streakMilestoneValue,
+        celebration,
+        advanceCelebration,
         streakFreezeTrigger,
         completeLesson,
         completeDailyAction,

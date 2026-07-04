@@ -18,13 +18,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 
-import { BadgeEarnedOverlay } from "@/components/BadgeEarnedOverlay";
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
 import { Onboarding } from "@/components/Onboarding";
 import { SharePreviewCard } from "@/components/SharePreviewCard";
 import { StreakFreezeToast } from "@/components/StreakFreezeToast";
-import { StreakMilestoneOverlay } from "@/components/StreakMilestoneOverlay";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { XPBar } from "@/components/XPBar";
 import { useGame } from "@/context/GameContext";
@@ -66,8 +64,6 @@ export default function GardenScreen() {
     todayActions,
     activateXPBoost,
     isXPBoostActive,
-    streakMilestoneTrigger,
-    streakMilestoneValue,
     streakFreezeTrigger,
     buyStreakFreeze,
     buyXPBoost,
@@ -87,8 +83,6 @@ export default function GardenScreen() {
   const [sharing, setSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareCaption, setShareCaption] = useState("");
-  const [badgeTrigger, setBadgeTrigger] = useState(0);
-  const [badgeIds, setBadgeIds] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const shareCardRef = useRef<View>(null);
 
@@ -117,12 +111,8 @@ export default function GardenScreen() {
 
   const handleDailyAction = useCallback(
     async (actionId: string) => {
-      const { newBadgeIds } = await completeDailyAction(actionId);
+      await completeDailyAction(actionId);
       setBurstTrigger((n) => n + 1);
-      if (newBadgeIds.length > 0) {
-        setBadgeIds(newBadgeIds);
-        setTimeout(() => setBadgeTrigger((t) => t + 1), 1000);
-      }
     },
     [completeDailyAction]
   );
@@ -281,9 +271,7 @@ export default function GardenScreen() {
 
   return (
     <View style={styles.rootContainer}>
-      <BadgeEarnedOverlay trigger={badgeTrigger} badgeIds={badgeIds} />
       <StreakFreezeToast trigger={streakFreezeTrigger} />
-      <StreakMilestoneOverlay trigger={streakMilestoneTrigger} milestone={streakMilestoneValue} />
 
       <ScrollView
         style={[styles.root, { backgroundColor: colors.background }]}

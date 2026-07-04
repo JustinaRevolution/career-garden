@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -13,7 +13,10 @@ import Animated, {
 interface Props {
   trigger: number;
   milestone: number;
+  onComplete?: () => void;
 }
+
+const TOTAL_MS = 2850;
 
 const MILESTONE_MESSAGES: Record<number, string> = {
   3:  "You're building momentum!",
@@ -26,11 +29,14 @@ function getMilestoneMessage(milestone: number): string {
   return MILESTONE_MESSAGES[milestone] ?? "Keep the streak alive!";
 }
 
-export function StreakMilestoneOverlay({ trigger, milestone }: Props) {
+export function StreakMilestoneOverlay({ trigger, milestone, onComplete }: Props) {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(0.4);
   const ringOpacity = useSharedValue(0);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (trigger === 0) return;
@@ -55,6 +61,12 @@ export function StreakMilestoneOverlay({ trigger, milestone }: Props) {
       duration: 1800,
       easing: Easing.out(Easing.ease),
     });
+
+    if (doneTimer.current) clearTimeout(doneTimer.current);
+    doneTimer.current = setTimeout(() => onCompleteRef.current?.(), TOTAL_MS);
+    return () => {
+      if (doneTimer.current) clearTimeout(doneTimer.current);
+    };
   }, [trigger]);
 
   const containerStyle = useAnimatedStyle(() => ({

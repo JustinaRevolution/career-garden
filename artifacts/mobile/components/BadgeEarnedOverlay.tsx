@@ -18,6 +18,7 @@ type Badge = typeof BADGES[number];
 interface Props {
   badgeIds: string[];
   trigger: number;
+  onComplete?: () => void;
 }
 
 const ENTER_MS = 250;
@@ -26,7 +27,7 @@ const EXIT_MS = 500;
 const GAP_MS = 250;
 const CYCLE_MS = ENTER_MS + DISPLAY_MS + EXIT_MS + GAP_MS;
 
-export function BadgeEarnedOverlay({ badgeIds, trigger }: Props) {
+export function BadgeEarnedOverlay({ badgeIds, trigger, onComplete }: Props) {
   const translateY = useSharedValue(120);
   const opacity = useSharedValue(0);
   const [display, setDisplay] = useState<{
@@ -35,6 +36,8 @@ export function BadgeEarnedOverlay({ badgeIds, trigger }: Props) {
     total: number;
   } | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (trigger === 0 || badgeIds.length === 0) return;
@@ -46,7 +49,10 @@ export function BadgeEarnedOverlay({ badgeIds, trigger }: Props) {
       .map((id) => BADGES.find((b) => b.id === id))
       .filter((b): b is Badge => Boolean(b));
 
-    if (badges.length === 0) return;
+    if (badges.length === 0) {
+      onCompleteRef.current?.();
+      return;
+    }
 
     badges.forEach((badge, i) => {
       const showTimer = setTimeout(() => {
@@ -61,6 +67,9 @@ export function BadgeEarnedOverlay({ badgeIds, trigger }: Props) {
       }, i * CYCLE_MS);
       timers.current.push(showTimer);
     });
+
+    const doneTimer = setTimeout(() => onCompleteRef.current?.(), badges.length * CYCLE_MS);
+    timers.current.push(doneTimer);
 
     return () => {
       timers.current.forEach(clearTimeout);
