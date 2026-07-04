@@ -1,7 +1,11 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 
 interface VolumeSliderProps {
   value: number;
@@ -21,53 +25,68 @@ export function VolumeSlider({
   fillColor,
   thumbColor,
 }: VolumeSliderProps) {
-  const [width, setWidth] = useState(0);
-  const widthRef = useRef(0);
+  const width = useSharedValue(0);
+  const progress = useSharedValue(value);
+  const dragging = useSharedValue(false);
 
-  const updateFromX = useCallback(
-    (x: number) => {
-      const w = widthRef.current;
-      if (w <= 0) return;
-      const ratio = Math.min(1, Math.max(0, x / w));
-      onValueChange(Math.round(ratio * 100) / 100);
+  useEffect(() => {
+    if (!dragging.value) {
+      progress.value = value;
+    }
+  }, [value, dragging, progress]);
+
+  const emit = useCallback(
+    (v: number) => {
+      onValueChange(Math.round(v * 100) / 100);
     },
     [onValueChange]
   );
 
+  const updateFromX = (x: number) => {
+    "worklet";
+    const w = width.value;
+    if (w <= 0) return;
+    const ratio = Math.min(1, Math.max(0, x / w));
+    progress.value = ratio;
+    runOnJS(emit)(ratio);
+  };
+
   const gesture = Gesture.Pan()
+    .minDistance(0)
     .onBegin((e) => {
-      runOnJS(updateFromX)(e.x);
+      dragging.value = true;
+      updateFromX(e.x);
     })
     .onUpdate((e) => {
-      runOnJS(updateFromX)(e.x);
+      updateFromX(e.x);
     })
-    .minDistance(0);
+    .onFinalize(() => {
+      dragging.value = false;
+    });
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+  }));
+
+  const thumbStyle = useAnimatedStyle(() => ({
+    left: Math.max(0, width.value * progress.value - THUMB_SIZE / 2),
+  }));
 
   return (
     <GestureDetector gesture={gesture}>
       <View
         style={styles.wrapper}
         onLayout={(e) => {
-          widthRef.current = e.nativeEvent.layout.width;
-          setWidth(e.nativeEvent.layout.width);
+          width.value = e.nativeEvent.layout.width;
         }}
         hitSlop={{ top: 12, bottom: 12 }}
       >
         <View style={[styles.track, { backgroundColor: trackColor }]} />
-        <View
-          style={[
-            styles.fill,
-            { backgroundColor: fillColor, width: `${value * 100}%` },
-          ]}
+        <Animated.View
+          style={[styles.fill, { backgroundColor: fillColor }, fillStyle]}
         />
-        <View
-          style={[
-            styles.thumb,
-            {
-              backgroundColor: thumbColor,
-              left: Math.max(0, width * value - THUMB_SIZE / 2),
-            },
-          ]}
+        <Animated.View
+          style={[styles.thumb, { backgroundColor: thumbColor }, thumbStyle]}
         />
       </View>
     </GestureDetector>
