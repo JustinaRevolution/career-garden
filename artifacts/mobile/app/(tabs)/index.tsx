@@ -25,6 +25,7 @@ import { SharePreviewCard } from "@/components/SharePreviewCard";
 import { StreakFreezeToast } from "@/components/StreakFreezeToast";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { XPBar } from "@/components/XPBar";
+import { XPCostFlash } from "@/components/XPCostFlash";
 import { useGame } from "@/context/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useAmbientSound } from "@/hooks/useAmbientSound";
@@ -84,6 +85,8 @@ export default function GardenScreen() {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareCaption, setShareCaption] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [freezeFlashTrigger, setFreezeFlashTrigger] = useState(0);
+  const [boostFlashTrigger, setBoostFlashTrigger] = useState(0);
   const shareCardRef = useRef<View>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -142,7 +145,13 @@ export default function GardenScreen() {
       `Spend ${XP_SHOP.streakFreezePrice} XP for 1 Streak Freeze.`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Buy", onPress: async () => { await buyStreakFreeze(); } },
+        {
+          text: "Buy",
+          onPress: async () => {
+            const ok = await buyStreakFreeze();
+            if (ok) setFreezeFlashTrigger((n) => n + 1);
+          },
+        },
       ]
     );
   }, [canBuyFreeze, buyStreakFreeze]);
@@ -157,7 +166,13 @@ export default function GardenScreen() {
       `Spend ${XP_SHOP.xpBoostPrice} XP for 1 XP Boost (24h).`,
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Buy", onPress: async () => { await buyXPBoost(); } },
+        {
+          text: "Buy",
+          onPress: async () => {
+            const ok = await buyXPBoost();
+            if (ok) setBoostFlashTrigger((n) => n + 1);
+          },
+        },
       ]
     );
   }, [canBuyBoost, buyXPBoost]);
@@ -513,6 +528,7 @@ export default function GardenScreen() {
                 { backgroundColor: colors.card, borderColor: canBuyFreeze ? colors.primary + "66" : colors.border },
               ]}
             >
+              <XPCostFlash trigger={freezeFlashTrigger} amount={XP_SHOP.streakFreezePrice} color={colors.primary} />
               <Text style={styles.shopEmoji}>🧊</Text>
               <Text style={[styles.shopItemName, { color: colors.foreground }]}>Streak Freeze</Text>
               <View style={[styles.shopPricePill, { backgroundColor: canBuyFreeze ? colors.primary + "22" : colors.muted }]}>
@@ -528,6 +544,7 @@ export default function GardenScreen() {
                 { backgroundColor: colors.card, borderColor: canBuyBoost ? "#F5A54A66" : colors.border },
               ]}
             >
+              <XPCostFlash trigger={boostFlashTrigger} amount={XP_SHOP.xpBoostPrice} color="#D4840A" />
               <Text style={styles.shopEmoji}>⚡</Text>
               <Text style={[styles.shopItemName, { color: colors.foreground }]}>2x XP Boost</Text>
               <View style={[styles.shopPricePill, { backgroundColor: canBuyBoost ? "#F5A54A22" : colors.muted }]}>
