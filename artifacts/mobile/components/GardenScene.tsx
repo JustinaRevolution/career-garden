@@ -21,6 +21,7 @@ import Svg, {
   Rect,
   Stop,
 } from "react-native-svg";
+import { timeOfDay } from "../constants/pondPalette";
 
 function clamp(n: number) {
   return Math.max(0, Math.min(255, n));
@@ -152,7 +153,14 @@ function KoiShape({ w, h, color }: { w: number; h: number; color: string }) {
           <Stop offset="0.55" stopColor={color} />
           <Stop offset="1" stopColor={bodyDark} />
         </SvgLinearGradient>
+        <RadialGradient id={`sh${id}`} cx="50%" cy="50%" r="50%">
+          <Stop offset="0" stopColor="#03100D" stopOpacity={0.4} />
+          <Stop offset="0.7" stopColor="#03100D" stopOpacity={0.16} />
+          <Stop offset="1" stopColor="#03100D" stopOpacity={0} />
+        </RadialGradient>
       </Defs>
+      {/* soft shadow so the fish reads as floating over the pond floor */}
+      <Ellipse cx="74" cy="50" rx="42" ry="4" fill={`url(#sh${id})`} />
       {/* caudal (tail) fin */}
       <Path
         d="M48 27 Q16 5 6 3 Q22 27 6 51 Q16 49 48 27 Z"
@@ -607,15 +615,15 @@ function FadeInView({
   return <Animated.View style={[StyleSheet.absoluteFill, style]}>{children}</Animated.View>;
 }
 
-function WaterDepth() {
+function WaterDepth({ poolColor, poolMid }: { poolColor: string; poolMid: string }) {
   const id = cleanId(useId());
   return (
     <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" pointerEvents="none">
       <Defs>
         <RadialGradient id={`pool${id}`} cx="50%" cy="26%" r="72%">
-          <Stop offset="0" stopColor="#1E5450" stopOpacity={0.6} />
-          <Stop offset="0.6" stopColor="#0F3330" stopOpacity={0.25} />
-          <Stop offset="1" stopColor="#0A1E1C" stopOpacity={0} />
+          <Stop offset="0" stopColor={poolColor} stopOpacity={0.6} />
+          <Stop offset="0.6" stopColor={poolMid} stopOpacity={0.25} />
+          <Stop offset="1" stopColor={poolColor} stopOpacity={0} />
         </RadialGradient>
         <RadialGradient id={`vig${id}`} cx="50%" cy="52%" r="78%">
           <Stop offset="0.58" stopColor="#000000" stopOpacity={0} />
@@ -625,6 +633,102 @@ function WaterDepth() {
       <Rect x="0" y="0" width="100%" height="100%" fill={`url(#pool${id})`} />
       <Rect x="0" y="0" width="100%" height="100%" fill={`url(#vig${id})`} />
     </Svg>
+  );
+}
+
+function Caustic({
+  x,
+  y,
+  w,
+  h,
+  dx,
+  dy,
+  delay,
+  color,
+  staticMode = false,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  dx: number;
+  dy: number;
+  delay: number;
+  color: string;
+  staticMode?: boolean;
+}) {
+  const id = cleanId(useId());
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  const op = useSharedValue(staticMode ? 0.09 : 0.05);
+
+  useEffect(() => {
+    if (staticMode) return;
+    tx.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(dx, { duration: 6500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 6500, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
+      )
+    );
+    ty.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(dy, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 8000, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
+      )
+    );
+    op.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(0.16, { duration: 3500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.04, { duration: 3500, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
+      )
+    );
+  }, []);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }],
+    opacity: op.value,
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[{ position: "absolute", left: x, top: y }, style]}
+    >
+      <Svg width={w} height={h}>
+        <Defs>
+          <RadialGradient id={`ca${id}`} cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={color} stopOpacity={0.9} />
+            <Stop offset="1" stopColor={color} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={`url(#ca${id})`} />
+      </Svg>
+    </Animated.View>
+  );
+}
+
+function Caustics({ color, staticMode = false }: { color: string; staticMode?: boolean }) {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Caustic x={30} y={30} w={150} h={72} dx={26} dy={16} delay={0} color={color} staticMode={staticMode} />
+      <Caustic x={175} y={110} w={170} h={82} dx={-30} dy={-18} delay={1500} color={color} staticMode={staticMode} />
+      <Caustic x={85} y={150} w={130} h={62} dx={22} dy={-14} delay={3000} color={color} staticMode={staticMode} />
+    </View>
   );
 }
 
@@ -664,20 +768,23 @@ export const GardenScene = React.forwardRef<View, Props>(
   ) {
     const bonusKoiColors = ["#E0D8CC", "#7BC4A0", "#E8896E", "#A77BC4", "#7BAAC4", "#F5D06E"];
     const bonusCount = Math.min(bonusKoi, BONUS_KOI_SPOTS.length);
+    const pal = timeOfDay(gardenLevel);
     return (
       <View ref={ref} style={[styles.container, { height }]}>
         <LinearGradient
-          colors={["#0E3733", "#0A211F", "#093A38"]}
+          colors={pal.grad}
           locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFill}
         />
 
-        <WaterDepth />
+        <WaterDepth poolColor={pal.poolInner} poolMid={pal.poolMid} />
+
+        <Caustics color={pal.caustic} staticMode={staticMode} />
 
         <View style={StyleSheet.absoluteFill}>
-          <WaterRipple x={90} y={120} size={80} delay={0} color="#3A8A84" staticMode={staticMode} staticScale={0.95} staticOpacity={0.6} />
-          <WaterRipple x={230} y={80} size={70} delay={1200} color="#3A8A84" staticMode={staticMode} staticScale={0.6} staticOpacity={0.68} />
-          <WaterRipple x={160} y={170} size={90} delay={2400} color="#3A8A84" staticMode={staticMode} staticScale={0.4} staticOpacity={0.72} />
+          <WaterRipple x={90} y={120} size={80} delay={0} color={pal.ripple} staticMode={staticMode} staticScale={0.95} staticOpacity={0.6} />
+          <WaterRipple x={230} y={80} size={70} delay={1200} color={pal.ripple} staticMode={staticMode} staticScale={0.6} staticOpacity={0.68} />
+          <WaterRipple x={160} y={170} size={90} delay={2400} color={pal.ripple} staticMode={staticMode} staticScale={0.4} staticOpacity={0.72} />
         </View>
 
         {!staticMode && (
