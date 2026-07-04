@@ -342,9 +342,19 @@ export default function GardenScreen() {
                 setVolumeModalVisible(true);
               }}
               delayLongPress={350}
+              accessibilityRole="button"
+              accessibilityLabel={muted ? "Unmute ambient sound" : "Mute ambient sound"}
               style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
             >
               <Ionicons name={muted ? "volume-mute" : "volume-medium"} size={18} color={colors.mutedForeground} />
+            </Pressable>
+            <Pressable
+              onPress={() => setVolumeModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Adjust ambient sound volume"
+              style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            >
+              <Ionicons name="options-outline" size={18} color={colors.mutedForeground} />
             </Pressable>
             <TouchableOpacity
               onPress={handleShare}
