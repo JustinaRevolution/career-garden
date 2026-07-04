@@ -494,9 +494,9 @@ export const GardenScene = React.forwardRef<View, Props>(
       />
 
       <View style={StyleSheet.absoluteFill}>
-        <WaterRipple x={90} y={120} size={80} delay={0} color="#2A6060" staticMode={staticMode} staticScale={0.65} staticOpacity={0.22} />
-        <WaterRipple x={230} y={80} size={70} delay={1200} color="#2A6060" staticMode={staticMode} staticScale={0.35} staticOpacity={0.35} />
-        <WaterRipple x={160} y={170} size={90} delay={2400} color="#2A6060" staticMode={staticMode} staticScale={0.2} staticOpacity={0.45} />
+        <WaterRipple x={90} y={120} size={80} delay={0} color="#2A6060" staticMode={staticMode} staticScale={0.95} staticOpacity={0.6} />
+        <WaterRipple x={230} y={80} size={70} delay={1200} color="#2A6060" staticMode={staticMode} staticScale={0.6} staticOpacity={0.68} />
+        <WaterRipple x={160} y={170} size={90} delay={2400} color="#2A6060" staticMode={staticMode} staticScale={0.4} staticOpacity={0.72} />
       </View>
 
       {!staticMode && (
