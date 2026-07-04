@@ -77,13 +77,12 @@ export default function GardenScreen() {
     equipCosmetic,
     getEquippedKoiColor,
   } = useGame();
-  const { muted, toggleMute, volume, setVolume } = useAmbientSound();
+  const gardenLevel = getGardenLevel(state.xp);
+  const { muted, toggleMute, volume, setVolume } = useAmbientSound(gardenLevel);
   const [volumeModalVisible, setVolumeModalVisible] = useState(false);
   const longPressTriggeredRef = useRef(false);
   const { isSupported: notifSupported, requestPermission, scheduleDailyReminder, cancelDailyReminder } =
     useNotifications();
-
-  const gardenLevel = getGardenLevel(state.xp);
   const [burstTrigger, setBurstTrigger] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);

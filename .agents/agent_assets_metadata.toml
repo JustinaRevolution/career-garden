@@ -1,8 +1,25 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "tivpSWZoBCjJWYNvo61Gw"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "career garden koi pond icon"
+
+[[outputs]]
+id = "JQzeqc0bvpfkieQEL3H9P"
+uri = "file://artifacts/mobile/assets/sounds/ambient-sparse.mp3"
+type = "audio"
+title = "sparse pond ambience"
+
+[[outputs]]
+id = "moHdnxfFSd1VPEQKAKsVN"
+uri = "file://artifacts/mobile/assets/sounds/ambient-mid.mp3"
+type = "audio"
+title = "mid garden ambience"
+
+[[outputs]]
+id = "hv47wFGgo_B6Bnu8Lqrpn"
+uri = "file://artifacts/mobile/assets/sounds/ambient-full.mp3"
+type = "audio"
+title = "full garden ambience"
