@@ -45,6 +45,7 @@ export const SharePreviewCard = React.forwardRef<View, SharePreviewCardProps>(
           gardenLevel={gardenLevel}
           height={gardenHeight}
           showBlossoms={showBlossoms}
+          staticMode
         />
 
         <LinearGradient

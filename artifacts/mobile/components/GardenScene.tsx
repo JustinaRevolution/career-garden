@@ -17,17 +17,24 @@ function WaterRipple({
   size,
   delay,
   color,
+  staticMode = false,
+  staticScale = 0.5,
+  staticOpacity = 0.28,
 }: {
   x: number;
   y: number;
   size: number;
   delay: number;
   color: string;
+  staticMode?: boolean;
+  staticScale?: number;
+  staticOpacity?: number;
 }) {
-  const scale = useSharedValue(0.2);
-  const opacity = useSharedValue(0.5);
+  const scale = useSharedValue(staticMode ? staticScale : 0.2);
+  const opacity = useSharedValue(staticMode ? staticOpacity : 0.5);
 
   useEffect(() => {
+    if (staticMode) return;
     scale.value = withDelay(
       delay,
       withRepeat(
@@ -102,6 +109,7 @@ function KoiFish({
   delay,
   width = 44,
   height = 18,
+  staticMode = false,
 }: {
   x: number;
   y: number;
@@ -109,12 +117,14 @@ function KoiFish({
   delay: number;
   width?: number;
   height?: number;
+  staticMode?: boolean;
 }) {
-  const tx = useSharedValue(0);
-  const ty = useSharedValue(0);
+  const tx = useSharedValue(staticMode ? 12 : 0);
+  const ty = useSharedValue(staticMode ? 6 : 0);
   const flipX = useSharedValue(1);
 
   useEffect(() => {
+    if (staticMode) return;
     tx.value = withDelay(
       delay,
       withRepeat(
@@ -205,10 +215,11 @@ function LilyPad({ x, y, size, color }: { x: number; y: number; size: number; co
   );
 }
 
-function LotusFlower({ x, y }: { x: number; y: number }) {
-  const pulse = useSharedValue(1);
+function LotusFlower({ x, y, staticMode = false }: { x: number; y: number; staticMode?: boolean }) {
+  const pulse = useSharedValue(staticMode ? 1.03 : 1);
 
   useEffect(() => {
+    if (staticMode) return;
     pulse.value = withRepeat(
       withSequence(
         withTiming(1.06, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
@@ -256,10 +267,11 @@ function LotusFlower({ x, y }: { x: number; y: number }) {
   );
 }
 
-function StoneLantern({ x, y }: { x: number; y: number }) {
-  const glow = useSharedValue(0.6);
+function StoneLantern({ x, y, staticMode = false }: { x: number; y: number; staticMode?: boolean }) {
+  const glow = useSharedValue(staticMode ? 0.85 : 0.6);
 
   useEffect(() => {
+    if (staticMode) return;
     glow.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
@@ -302,17 +314,23 @@ function CherryBlossomPetal({
   startX,
   delay,
   gardenHeight,
+  staticMode = false,
+  staticFraction = 0.4,
 }: {
   startX: number;
   delay: number;
   gardenHeight: number;
+  staticMode?: boolean;
+  staticFraction?: number;
 }) {
-  const ty = useSharedValue(-16);
-  const swayX = useSharedValue(0);
-  const rotate = useSharedValue(0);
-  const opacity = useSharedValue(0);
+  const staticTy = gardenHeight * staticFraction;
+  const ty = useSharedValue(staticMode ? staticTy : -16);
+  const swayX = useSharedValue(staticMode ? 6 : 0);
+  const rotate = useSharedValue(staticMode ? 45 : 0);
+  const opacity = useSharedValue(staticMode ? 0.82 : 0);
 
   useEffect(() => {
+    if (staticMode) return;
     const duration = 4800 + (delay % 1800);
     ty.value = withDelay(
       delay,
@@ -406,20 +424,28 @@ function FadeInView({
   visible,
   children,
   delay = 0,
+  staticMode = false,
 }: {
   visible: boolean;
   children: React.ReactNode;
   delay?: number;
+  staticMode?: boolean;
 }) {
-  const opacity = useSharedValue(visible ? 1 : 0);
+  const opacity = useSharedValue(staticMode ? (visible ? 1 : 0) : visible ? 1 : 0);
 
   useEffect(() => {
+    if (staticMode) return;
     if (visible) {
       opacity.value = withDelay(delay, withTiming(1, { duration: 1000 }));
     }
   }, [visible]);
 
   const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  if (staticMode) {
+    if (!visible) return null;
+    return <View style={StyleSheet.absoluteFill}>{children}</View>;
+  }
 
   return <Animated.View style={[StyleSheet.absoluteFill, style]}>{children}</Animated.View>;
 }
@@ -433,6 +459,8 @@ const BONUS_KOI_SPOTS = [
   { x: 95, y: 50, delay: 3100, width: 26, height: 11 },
 ];
 
+const BLOSSOM_FRACTIONS = [0.55, 0.35, 0.7, 0.25, 0.45, 0.6, 0.3, 0.5];
+
 interface Props {
   gardenLevel: number;
   height?: number;
@@ -440,11 +468,20 @@ interface Props {
   showBlossoms?: boolean;
   koiColor?: string;
   bonusKoi?: number;
+  staticMode?: boolean;
 }
 
 export const GardenScene = React.forwardRef<View, Props>(
   function GardenScene(
-    { gardenLevel, height = 220, burstTrigger = 0, showBlossoms = false, koiColor = "#F5A54A", bonusKoi = 0 },
+    {
+      gardenLevel,
+      height = 220,
+      burstTrigger = 0,
+      showBlossoms = false,
+      koiColor = "#F5A54A",
+      bonusKoi = 0,
+      staticMode = false,
+    },
     ref
   ) {
   const bonusKoiColors = ["#E0D8CC", "#7BC4A0", "#E8896E", "#A77BC4", "#7BAAC4", "#F5D06E"];
@@ -457,44 +494,46 @@ export const GardenScene = React.forwardRef<View, Props>(
       />
 
       <View style={StyleSheet.absoluteFill}>
-        <WaterRipple x={90} y={120} size={80} delay={0} color="#2A6060" />
-        <WaterRipple x={230} y={80} size={70} delay={1200} color="#2A6060" />
-        <WaterRipple x={160} y={170} size={90} delay={2400} color="#2A6060" />
+        <WaterRipple x={90} y={120} size={80} delay={0} color="#2A6060" staticMode={staticMode} staticScale={0.65} staticOpacity={0.22} />
+        <WaterRipple x={230} y={80} size={70} delay={1200} color="#2A6060" staticMode={staticMode} staticScale={0.35} staticOpacity={0.35} />
+        <WaterRipple x={160} y={170} size={90} delay={2400} color="#2A6060" staticMode={staticMode} staticScale={0.2} staticOpacity={0.45} />
       </View>
 
-      <View style={[StyleSheet.absoluteFill, styles.burstCenter]}>
-        <BurstRipple trigger={burstTrigger} />
-      </View>
+      {!staticMode && (
+        <View style={[StyleSheet.absoluteFill, styles.burstCenter]}>
+          <BurstRipple trigger={burstTrigger} />
+        </View>
+      )}
 
-      <FadeInView visible={gardenLevel >= 2} delay={200}>
+      <FadeInView visible={gardenLevel >= 2} delay={200} staticMode={staticMode}>
         <LilyPad x={50} y={55} size={32} color="#2A5A3A" />
         <LilyPad x={250} y={45} size={28} color="#2A5A3A" />
         <LilyPad x={75} y={155} size={30} color="#264D34" />
         <LilyPad x={280} y={165} size={26} color="#2A5A3A" />
       </FadeInView>
 
-      <FadeInView visible={gardenLevel >= 2} delay={600}>
-        <KoiFish x={80} y={90} color={koiColor} delay={300} width={46} height={18} />
+      <FadeInView visible={gardenLevel >= 2} delay={600} staticMode={staticMode}>
+        <KoiFish x={80} y={90} color={koiColor} delay={300} width={46} height={18} staticMode={staticMode} />
       </FadeInView>
 
-      <FadeInView visible={gardenLevel >= 3} delay={400}>
-        <LotusFlower x={195} y={95} />
+      <FadeInView visible={gardenLevel >= 3} delay={400} staticMode={staticMode}>
+        <LotusFlower x={195} y={95} staticMode={staticMode} />
       </FadeInView>
 
-      <FadeInView visible={gardenLevel >= 4} delay={200}>
-        <StoneLantern x={170} y={30} />
+      <FadeInView visible={gardenLevel >= 4} delay={200} staticMode={staticMode}>
+        <StoneLantern x={170} y={30} staticMode={staticMode} />
       </FadeInView>
 
-      <FadeInView visible={gardenLevel >= 5} delay={800}>
-        <KoiFish x={190} y={145} color="#E0D8CC" delay={1500} width={36} height={14} />
+      <FadeInView visible={gardenLevel >= 5} delay={800} staticMode={staticMode}>
+        <KoiFish x={190} y={145} color="#E0D8CC" delay={1500} width={36} height={14} staticMode={staticMode} />
       </FadeInView>
 
-      <FadeInView visible={gardenLevel >= 6} delay={0}>
+      <FadeInView visible={gardenLevel >= 6} delay={0} staticMode={staticMode}>
         <LilyPad x={130} y={40} size={24} color="#2A5A3A" />
         <LilyPad x={200} y={170} size={30} color="#264D34" />
       </FadeInView>
 
-      <FadeInView visible={gardenLevel >= 7} delay={300}>
+      <FadeInView visible={gardenLevel >= 7} delay={300} staticMode={staticMode}>
         <BambooStalk x={10} height={height} color="#3A6A2A" />
         <BambooStalk x={24} height={height * 0.75} color="#2E5820" />
         <BambooStalk x={300} height={height} color="#3A6A2A" />
@@ -502,7 +541,7 @@ export const GardenScene = React.forwardRef<View, Props>(
       </FadeInView>
 
       {bonusCount > 0 && (
-        <FadeInView visible={true} delay={400}>
+        <FadeInView visible={true} delay={400} staticMode={staticMode}>
           {BONUS_KOI_SPOTS.slice(0, bonusCount).map((spot, i) => (
             <KoiFish
               key={`bonus-${i}`}
@@ -512,20 +551,21 @@ export const GardenScene = React.forwardRef<View, Props>(
               delay={spot.delay}
               width={spot.width}
               height={spot.height}
+              staticMode={staticMode}
             />
           ))}
         </FadeInView>
       )}
 
-      <FadeInView visible={showBlossoms} delay={0}>
-        <CherryBlossomPetal startX={35} delay={0} gardenHeight={height} />
-        <CherryBlossomPetal startX={90} delay={900} gardenHeight={height} />
-        <CherryBlossomPetal startX={150} delay={1800} gardenHeight={height} />
-        <CherryBlossomPetal startX={210} delay={500} gardenHeight={height} />
-        <CherryBlossomPetal startX={265} delay={1400} gardenHeight={height} />
-        <CherryBlossomPetal startX={310} delay={2200} gardenHeight={height} />
-        <CherryBlossomPetal startX={65} delay={2700} gardenHeight={height} />
-        <CherryBlossomPetal startX={185} delay={3200} gardenHeight={height} />
+      <FadeInView visible={showBlossoms} delay={0} staticMode={staticMode}>
+        <CherryBlossomPetal startX={35} delay={0} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[0]} />
+        <CherryBlossomPetal startX={90} delay={900} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[1]} />
+        <CherryBlossomPetal startX={150} delay={1800} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[2]} />
+        <CherryBlossomPetal startX={210} delay={500} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[3]} />
+        <CherryBlossomPetal startX={265} delay={1400} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[4]} />
+        <CherryBlossomPetal startX={310} delay={2200} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[5]} />
+        <CherryBlossomPetal startX={65} delay={2700} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[6]} />
+        <CherryBlossomPetal startX={185} delay={3200} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[7]} />
       </FadeInView>
     </View>
   );
