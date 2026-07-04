@@ -225,19 +225,37 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           migrated.lastActiveDate !== yesterday &&
           migrated.streakFreezes > 0;
 
+        let nextState = migrated;
+        let needsSave = false;
+
         if (freezeAutoApplies) {
-          const log = appendLog(migrated.powerUpLog, { type: "used-freeze", timestamp: Date.now(), detail: "Auto-applied to save your streak" });
-          const withFreeze: GameState = {
-            ...migrated,
+          const log = appendLog(nextState.powerUpLog, { type: "used-freeze", timestamp: Date.now(), detail: "Auto-applied to save your streak" });
+          nextState = {
+            ...nextState,
             lastActiveDate: today,
-            streakFreezes: migrated.streakFreezes - 1,
+            streakFreezes: nextState.streakFreezes - 1,
             powerUpLog: log,
           };
-          setState(withFreeze);
-          await saveState(withFreeze);
-          enqueueCelebration({ kind: "streakFreeze" });
-        } else {
-          setState(migrated);
+          needsSave = true;
+        }
+
+        // A milestone deferred while the app was backgrounded may still be
+        // pending on a cold launch (no AppState "active" change fires then).
+        // Replay it exactly once here and persist the cleared field so it is
+        // never shown again on a subsequent launch.
+        const pendingMilestone = nextState.pendingStreakMilestone;
+        if (pendingMilestone !== null) {
+          nextState = { ...nextState, pendingStreakMilestone: null };
+          needsSave = true;
+        }
+
+        stateRef.current = nextState;
+        setState(nextState);
+        if (needsSave) await saveState(nextState);
+
+        if (freezeAutoApplies) enqueueCelebration({ kind: "streakFreeze" });
+        if (pendingMilestone !== null) {
+          enqueueCelebration({ kind: "streakMilestone", milestone: pendingMilestone });
         }
       }
     } catch {
