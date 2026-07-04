@@ -141,7 +141,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const celebration = celebrationQueue[0] ?? null;
-  const freezeConsumedRef = useRef(false);
+  const freezeAppliedDateRef = useRef<string | null>(null);
 
   useEffect(() => {
     loadState();
@@ -166,14 +166,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
 
         const freezeAutoApplies =
-          !freezeConsumedRef.current &&
+          freezeAppliedDateRef.current !== today &&
           updated.lastActiveDate !== null &&
           updated.lastActiveDate !== today &&
           updated.lastActiveDate !== yesterday &&
           updated.streakFreezes > 0;
 
         if (freezeAutoApplies) {
-          freezeConsumedRef.current = true;
+          freezeAppliedDateRef.current = today;
           const log = appendLog(updated.powerUpLog, { type: "used-freeze", timestamp: Date.now(), detail: "Auto-applied to save your streak" });
           updated = {
             ...updated,
