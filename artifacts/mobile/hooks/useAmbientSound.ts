@@ -23,6 +23,16 @@ function trackForLevel(gardenLevel: number): TrackKey {
   return "sparse";
 }
 
+// The track for the next band up, but only once the player is one garden level
+// away from crossing into it (e.g. at level 2 the next level 3 lands in "mid").
+// Returns null when the next level stays in the current band or there is no
+// higher band, so we only ever hold at most one preloaded track in memory.
+function nextBandTrack(gardenLevel: number): TrackKey | null {
+  const current = trackForLevel(gardenLevel);
+  const next = trackForLevel(gardenLevel + 1);
+  return next !== current ? next : null;
+}
+
 function clampVolume(v: number): number {
   if (Number.isNaN(v)) return DEFAULT_VOLUME;
   return Math.min(1, Math.max(0, v));
@@ -32,6 +42,8 @@ export function useAmbientSound(gardenLevel: number = 1) {
   const soundRef = useRef<Audio.Sound | null>(null);
   const currentTrackRef = useRef<TrackKey | null>(null);
   const crossfadeTokenRef = useRef(0);
+  const preloadedRef = useRef<{ track: TrackKey; sound: Audio.Sound } | null>(null);
+  const preloadTokenRef = useRef(0);
   const [muted, setMuted] = useState(false);
   const mutedRef = useRef(false);
   const [volume, setVolumeState] = useState(DEFAULT_VOLUME);
@@ -97,6 +109,8 @@ export function useAmbientSound(gardenLevel: number = 1) {
       soundRef.current?.unloadAsync();
       soundRef.current = null;
       currentTrackRef.current = null;
+      preloadedRef.current?.sound.unloadAsync();
+      preloadedRef.current = null;
     };
     // Intentionally run once: track swaps for level changes are handled by the
     // crossfade effect below rather than re-initializing the sound object.
@@ -125,14 +139,29 @@ export function useAmbientSound(gardenLevel: number = 1) {
       try {
         const targetVolume = mutedRef.current ? 0 : volumeRef.current;
 
-        const { sound: newSound } = await Audio.Sound.createAsync(
-          AMBIENT_TRACKS[nextTrack],
-          {
-            isLooping: true,
-            volume: 0,
-            shouldPlay: !mutedRef.current,
+        // Reuse the track we preloaded ahead of the threshold so the crossfade
+        // can begin immediately instead of waiting on a fresh decode/buffer.
+        // Fall back to creating it on the spot if the preload wasn't ready.
+        let newSound: Audio.Sound;
+        const preloaded = preloadedRef.current;
+        if (preloaded && preloaded.track === nextTrack) {
+          newSound = preloaded.sound;
+          preloadedRef.current = null;
+          await newSound.setVolumeAsync(0).catch(() => {});
+          if (!mutedRef.current) {
+            await newSound.playAsync().catch(() => {});
           }
-        );
+        } else {
+          const created = await Audio.Sound.createAsync(
+            AMBIENT_TRACKS[nextTrack],
+            {
+              isLooping: true,
+              volume: 0,
+              shouldPlay: !mutedRef.current,
+            }
+          );
+          newSound = created.sound;
+        }
 
         if (cancelled || myToken !== crossfadeTokenRef.current) {
           await newSound.unloadAsync();
@@ -164,6 +193,61 @@ export function useAmbientSound(gardenLevel: number = 1) {
     }
 
     crossfade();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gardenLevel, isReady]);
+
+  // Preload the next band's track (silent + paused) once the player is one
+  // garden level away from crossing into it, so the crossfade above can start
+  // instantly instead of stalling on a decode/buffer. Runs after the crossfade
+  // effect so a just-consumed preload isn't mistaken for stale. Any preload
+  // that no longer matches the target is unloaded to keep memory bounded.
+  useEffect(() => {
+    if (!isReady || !readyRef.current) return;
+
+    const target = nextBandTrack(gardenLevel);
+
+    if (preloadedRef.current && preloadedRef.current.track !== target) {
+      const stale = preloadedRef.current.sound;
+      preloadedRef.current = null;
+      stale.unloadAsync().catch(() => {});
+    }
+
+    if (!target) return;
+    if (preloadedRef.current?.track === target) return;
+    if (currentTrackRef.current === target) return;
+
+    const myToken = ++preloadTokenRef.current;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          AMBIENT_TRACKS[target],
+          {
+            isLooping: true,
+            volume: 0,
+            shouldPlay: false,
+          }
+        );
+
+        if (
+          cancelled ||
+          myToken !== preloadTokenRef.current ||
+          preloadedRef.current?.track === target
+        ) {
+          await sound.unloadAsync();
+          return;
+        }
+
+        preloadedRef.current = { track: target, sound };
+      } catch {
+        // preload is best-effort; crossfade will create the track on demand
+      }
+    })();
 
     return () => {
       cancelled = true;
