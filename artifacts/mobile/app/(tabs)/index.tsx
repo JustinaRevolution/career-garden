@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
+import * as MediaLibrary from "expo-media-library";
 
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
@@ -87,6 +88,7 @@ export default function GardenScreen() {
     useNotifications();
   const [burstTrigger, setBurstTrigger] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [savingToPhotos, setSavingToPhotos] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareCaption, setShareCaption] = useState("");
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
@@ -365,6 +367,33 @@ export default function GardenScreen() {
       setSharing(false);
     }
   }, [previewUri, shareCaption, state.streak]);
+
+  const handleSaveToPhotos = useCallback(async () => {
+    if (!previewUri) return;
+
+    if (Platform.OS === "web") {
+      Alert.alert("Saving not available", "Saving to Photos is only supported on iOS and Android.");
+      return;
+    }
+
+    try {
+      setSavingToPhotos(true);
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Allow photo library access in your device settings to save your garden card."
+        );
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(previewUri);
+      Alert.alert("Saved to Photos", "Your garden card is now in your photo library.");
+    } catch {
+      Alert.alert("Could not save", "Something went wrong saving your garden to Photos.");
+    } finally {
+      setSavingToPhotos(false);
+    }
+  }, [previewUri]);
 
   if (!state.onboardingComplete) {
     return <Onboarding />;
@@ -943,10 +972,25 @@ export default function GardenScreen() {
               />
             )}
 
+            <TouchableOpacity
+              onPress={handleSaveToPhotos}
+              disabled={sharing || savingToPhotos}
+              style={[
+                styles.modalBtn,
+                styles.saveBtn,
+                { borderColor: colors.primary, opacity: sharing || savingToPhotos ? 0.6 : 1 },
+              ]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modalBtnText, { color: colors.primary }]}>
+                {savingToPhotos ? "Saving…" : "Save to Photos"}
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 onPress={handleBackToEdit}
-                disabled={sharing}
+                disabled={sharing || savingToPhotos}
                 style={[styles.modalBtn, styles.cancelBtn, { borderColor: colors.border }]}
                 activeOpacity={0.75}
               >
@@ -954,7 +998,7 @@ export default function GardenScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleConfirmShare}
-                disabled={sharing}
+                disabled={sharing || savingToPhotos}
                 style={[
                   styles.modalBtn,
                   styles.confirmBtn,
@@ -1305,6 +1349,10 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     borderWidth: 1,
+  },
+  saveBtn: {
+    borderWidth: 1,
+    marginBottom: 10,
   },
   confirmBtn: {},
   modalBtnText: {
