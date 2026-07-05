@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
@@ -293,6 +294,7 @@ export default function GardenScreen() {
           onPress: async () => {
             const ok = await buyCosmetic(cosmeticId);
             if (ok) {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
               await equipCosmetic(cosmeticId);
               setCosmeticFlash((f) => ({ id: cosmeticId, trigger: f.trigger + 1 }));
             }
