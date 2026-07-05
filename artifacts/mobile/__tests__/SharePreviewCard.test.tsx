@@ -167,3 +167,49 @@ describe("SharePreviewCard responsive scaling", () => {
     expect(tree.toJSON()).toMatchSnapshot();
   });
 });
+
+describe("SharePreviewCard variants", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("renders the balanced garden layout by default", () => {
+    const tree = renderAt(375);
+    const contents = textContents(tree.root);
+    expect(contents).toContain("day streak");
+    expect(contents).toContain("XP");
+    expect(contents).toContain("badges");
+    // No hero-only label from the focus variants.
+    expect(contents).not.toContain("total XP");
+  });
+
+  it("promotes the streak as the hero in the streak variant", () => {
+    const tree = renderAt(375, { variant: "streak" });
+    const contents = textContents(tree.root);
+    expect(contents).toContain("12"); // streak value stays visible
+    expect(contents).toContain("day streak");
+    // The two secondary stats remain present.
+    expect(contents).toContain("XP");
+    expect(contents).toContain("badges");
+  });
+
+  it("promotes XP as the hero in the xp variant", () => {
+    const tree = renderAt(375, { variant: "xp" });
+    const contents = textContents(tree.root);
+    expect(contents).toContain("total XP");
+    expect(contents).toContain("1450"); // xp value stays visible
+    expect(contents).toContain("day streak");
+    expect(contents).toContain("badges");
+  });
+
+  it("keeps every variant's caption and brand intact", () => {
+    for (const variant of ["garden", "streak", "xp"] as const) {
+      const tree = renderAt(375, { variant });
+      const contents = textContents(tree.root);
+      expect(contents).toContain(
+        "Day 12 of my job search garden growing strong 🌱"
+      );
+      expect(contents).toContain("Career Garden 🌸");
+    }
+  });
+});

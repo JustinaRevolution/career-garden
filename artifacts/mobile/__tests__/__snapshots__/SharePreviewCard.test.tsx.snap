@@ -289,6 +289,7 @@ exports[`SharePreviewCard responsive scaling matches the rendered snapshot at 32
             "textAlign": "center",
           },
           {
+            "color": "#5A8A78",
             "fontSize": 10,
           },
         ]
@@ -589,6 +590,7 @@ exports[`SharePreviewCard responsive scaling matches the rendered snapshot at 42
             "textAlign": "center",
           },
           {
+            "color": "#5A8A78",
             "fontSize": 13,
           },
         ]
@@ -889,6 +891,7 @@ exports[`SharePreviewCard responsive scaling matches the rendered snapshot at 90
             "textAlign": "center",
           },
           {
+            "color": "#5A8A78",
             "fontSize": 14,
           },
         ]

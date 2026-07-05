@@ -25,7 +25,7 @@ import * as MediaLibrary from "expo-media-library";
 import { GardenScene } from "@/components/GardenScene";
 import { DailyActionItem } from "@/components/DailyActionItem";
 import { Onboarding } from "@/components/Onboarding";
-import { SharePreviewCard } from "@/components/SharePreviewCard";
+import { SharePreviewCard, CARD_VARIANTS, CardVariant } from "@/components/SharePreviewCard";
 import { VolumeSlider } from "@/components/VolumeSlider";
 import { XPBar } from "@/components/XPBar";
 import { XPCostFlash } from "@/components/XPCostFlash";
@@ -95,6 +95,7 @@ export default function GardenScreen() {
   const [savingToPhotos, setSavingToPhotos] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [shareCaption, setShareCaption] = useState("");
+  const [cardVariant, setCardVariant] = useState<CardVariant>("garden");
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [previewAspect, setPreviewAspect] = useState(0.75);
@@ -910,7 +911,37 @@ export default function GardenScreen() {
               caption={shareCaption}
               showBlossoms={state.level >= 10}
               bonusKoi={bonusKoi}
+              variant={cardVariant}
             />
+
+            <View style={[styles.variantRow, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              {CARD_VARIANTS.map((v) => {
+                const active = v.key === cardVariant;
+                return (
+                  <TouchableOpacity
+                    key={v.key}
+                    onPress={() => setCardVariant(v.key)}
+                    style={[
+                      styles.variantChip,
+                      active && { backgroundColor: colors.primary },
+                    ]}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${v.label} card style`}
+                  >
+                    <Text
+                      style={[
+                        styles.variantChipText,
+                        { color: active ? "#fff" : colors.mutedForeground },
+                      ]}
+                    >
+                      {v.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
             <View style={styles.captionRow}>
               <TextInput
@@ -1346,6 +1377,24 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 20,
     borderWidth: 1,
+  },
+  variantRow: {
+    flexDirection: "row",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+    marginTop: -4,
+  },
+  variantChip: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  variantChipText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
   captionRow: {
     gap: 4,
