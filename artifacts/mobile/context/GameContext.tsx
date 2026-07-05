@@ -81,6 +81,52 @@ function getStreakMilestone(prev: number, next: number): number | null {
   return null;
 }
 
+export function appendLog(log: PowerUpEvent[], event: PowerUpEvent): PowerUpEvent[] {
+  return [event, ...log].slice(0, 50);
+}
+
+export function checkMilestonePowerUps(
+  prevBadgeCount: number,
+  newBadgeCount: number,
+  prevLessonCount: number,
+  newLessonCount: number,
+  currentFreezes: number,
+  currentBoosts: number,
+  log: PowerUpEvent[]
+): { streakFreezes: number; xpBoosts: number; log: PowerUpEvent[] } {
+  let streakFreezes = currentFreezes;
+  let xpBoosts = currentBoosts;
+  let updatedLog = log;
+
+  const prevFreezeThresholds = Math.floor(prevBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
+  const newFreezeThresholds = Math.floor(newBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
+  const earnedFreezes = newFreezeThresholds - prevFreezeThresholds;
+  if (earnedFreezes > 0) {
+    const grantedFreezes = Math.min(earnedFreezes, POWER_UP_CAP - streakFreezes);
+    if (grantedFreezes > 0) {
+      streakFreezes += grantedFreezes;
+      for (let i = 0; i < grantedFreezes; i++) {
+        updatedLog = appendLog(updatedLog, { type: "earned-freeze", timestamp: Date.now(), detail: `${newBadgeCount} badge${newBadgeCount !== 1 ? "s" : ""} reached` });
+      }
+    }
+  }
+
+  const prevBoostThresholds = Math.floor(prevLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
+  const newBoostThresholds = Math.floor(newLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
+  const earnedBoosts = newBoostThresholds - prevBoostThresholds;
+  if (earnedBoosts > 0) {
+    const grantedBoosts = Math.min(earnedBoosts, POWER_UP_CAP - xpBoosts);
+    if (grantedBoosts > 0) {
+      xpBoosts += grantedBoosts;
+      for (let i = 0; i < grantedBoosts; i++) {
+        updatedLog = appendLog(updatedLog, { type: "earned-boost", timestamp: Date.now(), detail: `${newLessonCount} lesson${newLessonCount !== 1 ? "s" : ""} completed` });
+      }
+    }
+  }
+
+  return { streakFreezes, xpBoosts, log: updatedLog };
+}
+
 export type CelebrationInput =
   | { kind: "levelUp"; level: number }
   | { kind: "streakMilestone"; milestone: number }
@@ -280,10 +326,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function appendLog(log: PowerUpEvent[], event: PowerUpEvent): PowerUpEvent[] {
-    return [event, ...log].slice(0, 50);
-  }
-
   function bumpDailyLog(
     log: Record<string, DailyLogEntry>,
     delta: Partial<DailyLogEntry>
@@ -376,48 +418,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (allModulesCompleted) addBadge("badge-full-bloom");
 
     return newBadges;
-  }
-
-  function checkMilestonePowerUps(
-    prevBadgeCount: number,
-    newBadgeCount: number,
-    prevLessonCount: number,
-    newLessonCount: number,
-    currentFreezes: number,
-    currentBoosts: number,
-    log: PowerUpEvent[]
-  ): { streakFreezes: number; xpBoosts: number; log: PowerUpEvent[] } {
-    let streakFreezes = currentFreezes;
-    let xpBoosts = currentBoosts;
-    let updatedLog = log;
-
-    const prevFreezeThresholds = Math.floor(prevBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
-    const newFreezeThresholds = Math.floor(newBadgeCount / POWER_UP_MILESTONES.badgesPerStreakFreeze);
-    const earnedFreezes = newFreezeThresholds - prevFreezeThresholds;
-    if (earnedFreezes > 0) {
-      const grantedFreezes = Math.min(earnedFreezes, POWER_UP_CAP - streakFreezes);
-      if (grantedFreezes > 0) {
-        streakFreezes += grantedFreezes;
-        for (let i = 0; i < grantedFreezes; i++) {
-          updatedLog = appendLog(updatedLog, { type: "earned-freeze", timestamp: Date.now(), detail: `${newBadgeCount} badge${newBadgeCount !== 1 ? "s" : ""} reached` });
-        }
-      }
-    }
-
-    const prevBoostThresholds = Math.floor(prevLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
-    const newBoostThresholds = Math.floor(newLessonCount / POWER_UP_MILESTONES.lessonsPerXPBoost);
-    const earnedBoosts = newBoostThresholds - prevBoostThresholds;
-    if (earnedBoosts > 0) {
-      const grantedBoosts = Math.min(earnedBoosts, POWER_UP_CAP - xpBoosts);
-      if (grantedBoosts > 0) {
-        xpBoosts += grantedBoosts;
-        for (let i = 0; i < grantedBoosts; i++) {
-          updatedLog = appendLog(updatedLog, { type: "earned-boost", timestamp: Date.now(), detail: `${newLessonCount} lesson${newLessonCount !== 1 ? "s" : ""} completed` });
-        }
-      }
-    }
-
-    return { streakFreezes, xpBoosts, log: updatedLog };
   }
 
   function getXPMultiplier(currentState: GameState): number {
