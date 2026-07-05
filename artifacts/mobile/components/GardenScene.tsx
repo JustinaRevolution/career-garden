@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useId, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -782,10 +782,12 @@ export const GardenScene = React.forwardRef<View, Props>(
   ) {
     const bonusKoiColors = ["#E0D8CC", "#7BC4A0", "#E8896E", "#A77BC4", "#7BAAC4", "#F5D06E"];
     const bonusCount = Math.min(bonusKoi, BONUS_KOI_SPOTS.length);
+    const bonusOverflow = Math.max(0, bonusKoi - BONUS_KOI_SPOTS.length);
     const pal = timeOfDay(gardenLevel);
     const [measuredW, setMeasuredW] = useState(0);
     const scale = measuredW > 0 ? measuredW / DESIGN_W : 1;
     const sx = (v: number) => v * scale;
+    const chipScale = Math.min(1.15, Math.max(0.8, scale));
     return (
       <View
         ref={ref}
@@ -866,6 +868,36 @@ export const GardenScene = React.forwardRef<View, Props>(
           </FadeInView>
         )}
 
+        {bonusOverflow > 0 && (
+          <FadeInView visible={true} delay={600} staticMode={staticMode}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.overflowChip,
+                {
+                  paddingHorizontal: 8 * chipScale,
+                  paddingVertical: 4 * chipScale,
+                  borderRadius: 12 * chipScale,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.overflowDot,
+                  {
+                    width: 7 * chipScale,
+                    height: 7 * chipScale,
+                    borderRadius: 3.5 * chipScale,
+                  },
+                ]}
+              />
+              <Text style={[styles.overflowText, { fontSize: Math.round(13 * chipScale) }]}>
+                {`+${bonusOverflow}`}
+              </Text>
+            </View>
+          </FadeInView>
+        )}
+
         <FadeInView visible={showBlossoms} delay={0} staticMode={staticMode}>
           <CherryBlossomPetal startX={sx(35)} delay={0} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[0]} />
           <CherryBlossomPetal startX={sx(90)} delay={900} gardenHeight={height} staticMode={staticMode} staticFraction={BLOSSOM_FRACTIONS[1]} />
@@ -909,5 +941,24 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
+  },
+  overflowChip: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(6,20,18,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+  },
+  overflowDot: {
+    backgroundColor: "#F5A54A",
+  },
+  overflowText: {
+    fontFamily: "Inter_700Bold",
+    color: "#F0EDE5",
+    letterSpacing: 0.2,
   },
 });
