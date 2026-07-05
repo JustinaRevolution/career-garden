@@ -94,8 +94,10 @@ interface GameContextType {
   isLoaded: boolean;
   celebration: Celebration | null;
   advanceCelebration: () => void;
-  completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean; newBadgeIds: string[] }>;
+  completeLesson: (lessonId: string, moduleId: string) => Promise<{ leveledUp: boolean; newBadgeIds: string[]; xpGained: number }>;
   completeDailyAction: (actionId: string) => Promise<{ newBadgeIds: string[] }>;
+  pendingLessonXP: number | null;
+  clearPendingLessonXP: () => void;
   isLessonCompleted: (lessonId: string) => boolean;
   isBadgeEarned: (badgeId: string) => boolean;
   getModuleProgress: (moduleId: string) => number;
@@ -127,6 +129,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
   const [isLoaded, setIsLoaded] = useState(false);
   const [celebrationQueue, setCelebrationQueue] = useState<Celebration[]>([]);
+  const [pendingLessonXP, setPendingLessonXP] = useState<number | null>(null);
+  const clearPendingLessonXP = useCallback(() => setPendingLessonXP(null), []);
   const celebrationIdRef = useRef(0);
   const todayActions = getTodayActions();
 
@@ -424,9 +428,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }
 
   const completeLesson = useCallback(
-    async (lessonId: string, moduleId: string): Promise<{ leveledUp: boolean; newBadgeIds: string[] }> => {
+    async (lessonId: string, moduleId: string): Promise<{ leveledUp: boolean; newBadgeIds: string[]; xpGained: number }> => {
       const current = stateRef.current;
-      if (current.completedLessons.includes(lessonId)) return { leveledUp: false, newBadgeIds: [] };
+      if (current.completedLessons.includes(lessonId)) return { leveledUp: false, newBadgeIds: [], xpGained: 0 };
 
       const mod = MODULES.find((m) => m.id === moduleId);
       const lesson = mod?.lessons.find((l) => l.id === lessonId);
@@ -486,7 +490,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         enqueueCelebration({ kind: "badge", badgeIds: newlyEarnedIds });
       }
 
-      return { leveledUp, newBadgeIds: newlyEarnedIds };
+      setPendingLessonXP(xpGain);
+
+      return { leveledUp, newBadgeIds: newlyEarnedIds, xpGained: xpGain };
     },
     [enqueueCelebration]
   );
@@ -834,6 +840,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         advanceCelebration,
         completeLesson,
         completeDailyAction,
+        pendingLessonXP,
+        clearPendingLessonXP,
         isLessonCompleted,
         isBadgeEarned,
         getModuleProgress,

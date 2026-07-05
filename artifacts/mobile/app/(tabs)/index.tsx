@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   Alert,
   Image,
@@ -68,6 +69,8 @@ export default function GardenScreen() {
   const {
     state,
     completeDailyAction,
+    pendingLessonXP,
+    clearPendingLessonXP,
     todayActions,
     activateXPBoost,
     isXPBoostActive,
@@ -126,6 +129,16 @@ export default function GardenScreen() {
   const boostAtCap = state.xpBoosts >= POWER_UP_CAP;
   const canBuyFreeze = state.xp >= XP_SHOP.streakFreezePrice && !freezeAtCap;
   const canBuyBoost = state.xp >= XP_SHOP.xpBoostPrice && !boostAtCap;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingLessonXP !== null && pendingLessonXP > 0) {
+        const amount = pendingLessonXP;
+        setXpGainFlash((f) => ({ amount, trigger: f.trigger + 1 }));
+        clearPendingLessonXP();
+      }
+    }, [pendingLessonXP, clearPendingLessonXP])
+  );
 
   const handleDailyAction = useCallback(
     async (actionId: string) => {
