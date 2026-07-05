@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
+import { impact } from "@/lib/haptics";
 import React, { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -43,7 +43,7 @@ export function DailyActionItem({ action, isCompleted, onComplete }: Props) {
     scale.value = withSpring(0.96, { damping: 10 }, () => {
       scale.value = withSpring(1);
     });
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    impact();
     onComplete(action.id);
   }
 

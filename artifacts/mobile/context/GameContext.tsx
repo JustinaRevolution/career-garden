@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
+import { setHapticsEnabled as applyHapticsEnabled } from "@/lib/haptics";
+
 import {
   APPLICATION_XP,
   BADGES,
@@ -42,6 +44,7 @@ export interface GameState {
   goal: Goal | null;
   onboardingComplete: boolean;
   notificationsEnabled: boolean;
+  hapticsEnabled: boolean;
   dailyLog: Record<string, DailyLogEntry>;
   ownedCosmetics: string[];
   equippedCosmetic: string | null;
@@ -66,6 +69,7 @@ const DEFAULT_STATE: GameState = {
   goal: null,
   onboardingComplete: false,
   notificationsEnabled: false,
+  hapticsEnabled: true,
   dailyLog: {},
   ownedCosmetics: [],
   equippedCosmetic: null,
@@ -164,6 +168,7 @@ interface GameContextType {
   clearGoal: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => Promise<void>;
+  setHapticsEnabled: (enabled: boolean) => Promise<void>;
   buyCosmetic: (cosmeticId: string) => Promise<boolean>;
   equipCosmetic: (cosmeticId: string | null) => Promise<void>;
   getEquippedKoiColor: () => string;
@@ -776,6 +781,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     await saveState(newState);
   }, []);
 
+  const setHapticsEnabled = useCallback(async (enabled: boolean): Promise<void> => {
+    const current = stateRef.current;
+    const newState: GameState = { ...current, hapticsEnabled: enabled };
+    setState(newState);
+    await saveState(newState);
+  }, []);
+
+  useEffect(() => {
+    applyHapticsEnabled(state.hapticsEnabled);
+  }, [state.hapticsEnabled]);
+
   const buyCosmetic = useCallback(async (cosmeticId: string): Promise<boolean> => {
     const current = stateRef.current;
     const cosmetic = COSMETICS.find((c) => c.id === cosmeticId);
@@ -862,6 +878,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         clearGoal,
         completeOnboarding,
         setNotificationsEnabled,
+        setHapticsEnabled,
         buyCosmetic,
         equipCosmetic,
         getEquippedKoiColor,

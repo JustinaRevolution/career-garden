@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
+import { impact, notify, ImpactFeedbackStyle, NotificationFeedbackType } from "@/lib/haptics";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
@@ -88,7 +88,7 @@ export default function TrackerScreen() {
       await addApplication(company, role, status, notes);
     }
     if (Platform.OS !== "web") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      notify(NotificationFeedbackType.Success);
     }
     setModalVisible(false);
   }, [company, role, notes, status, editing, addApplication, updateApplication]);
@@ -102,7 +102,7 @@ export default function TrackerScreen() {
           style: "destructive",
           onPress: () => {
             if (Platform.OS !== "web") {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              impact(ImpactFeedbackStyle.Medium);
             }
             deleteApplication(app.id);
           },

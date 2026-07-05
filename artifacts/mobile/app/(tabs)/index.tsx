@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
+import { impact, notify, NotificationFeedbackType } from "@/lib/haptics";
 import React, { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import {
@@ -80,6 +80,7 @@ export default function GardenScreen() {
     discardXPBoost,
     clearGoal,
     setNotificationsEnabled,
+    setHapticsEnabled,
     buyCosmetic,
     equipCosmetic,
     getEquippedKoiColor,
@@ -166,7 +167,7 @@ export default function GardenScreen() {
             { text: "Cancel", style: "cancel" },
             { text: "Discard One", style: "destructive", onPress: async () => {
               await discardXPBoost();
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              impact();
               setBoostDiscardFlash((n) => n + 1);
             } },
           ]
@@ -199,7 +200,7 @@ export default function GardenScreen() {
       { text: "Cancel", style: "cancel" },
       { text: "Discard One", style: "destructive", onPress: async () => {
         await discardStreakFreeze();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        impact();
         setFreezeDiscardFlash((n) => n + 1);
       } },
     ]);
@@ -318,7 +319,7 @@ export default function GardenScreen() {
           onPress: async () => {
             const ok = await buyCosmetic(cosmeticId);
             if (ok) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+              notify(NotificationFeedbackType.Success);
               await equipCosmetic(cosmeticId);
               setCosmeticFlash((f) => ({ id: cosmeticId, trigger: f.trigger + 1 }));
             }
@@ -820,6 +821,26 @@ export default function GardenScreen() {
               <Switch
                 value={state.notificationsEnabled}
                 onValueChange={handleToggleReminder}
+                trackColor={{ false: colors.muted, true: colors.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Haptics */}
+        {Platform.OS !== "web" && (
+          <View style={styles.section}>
+            <View style={[styles.reminderCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.reminderText}>
+                <Text style={[styles.reminderTitle, { color: colors.foreground }]}>Haptics</Text>
+                <Text style={[styles.reminderSub, { color: colors.mutedForeground }]}>
+                  Subtle vibrations for taps, sliders, and celebrations
+                </Text>
+              </View>
+              <Switch
+                value={state.hapticsEnabled}
+                onValueChange={(v) => setHapticsEnabled(v)}
                 trackColor={{ false: colors.muted, true: colors.primary }}
                 thumbColor="#fff"
               />

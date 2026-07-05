@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
+import { notify, NotificationFeedbackType } from "@/lib/haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -81,7 +81,7 @@ function TakeawayPage({
       withSpring(1.06, { damping: 8 }),
       withSpring(1)
     );
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    notify(NotificationFeedbackType.Success);
     setDone(true);
     await onComplete();
     setTimeout(() => router.back(), 900);
@@ -147,13 +147,13 @@ function QuizPage({
     if (selected === null || revealed) return;
     setRevealed(true);
     if (selected === quiz.correctIndex) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      notify(NotificationFeedbackType.Success);
       if (!alreadyPassed) {
         setEarned(true);
         await onPass();
       }
     } else {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      notify(NotificationFeedbackType.Warning);
     }
   }
 

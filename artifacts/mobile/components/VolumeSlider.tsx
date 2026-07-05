@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import * as Haptics from "expo-haptics";
+import { impact } from "@/lib/haptics";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -21,7 +21,7 @@ const THUMB_SIZE = 22;
 const HAPTIC_STEPS = 20;
 
 function triggerTick() {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  impact();
 }
 
 export function VolumeSlider({
