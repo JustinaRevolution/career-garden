@@ -101,6 +101,8 @@ export default function GardenScreen() {
   const [showHistory, setShowHistory] = useState(false);
   const [freezeFlashTrigger, setFreezeFlashTrigger] = useState(0);
   const [boostFlashTrigger, setBoostFlashTrigger] = useState(0);
+  const [freezeDiscardFlash, setFreezeDiscardFlash] = useState(0);
+  const [boostDiscardFlash, setBoostDiscardFlash] = useState(0);
   const [cosmeticFlash, setCosmeticFlash] = useState<{ id: string; trigger: number }>({ id: "", trigger: 0 });
   const [xpGainFlash, setXpGainFlash] = useState<{ amount: number; trigger: number }>({ amount: 0, trigger: 0 });
   const shareCardRef = useRef<View>(null);
@@ -161,7 +163,11 @@ export default function GardenScreen() {
           `You're holding the max of ${POWER_UP_CAP} XP Boosts and one is already active. Discard one to make room in the shop.`,
           [
             { text: "Cancel", style: "cancel" },
-            { text: "Discard One", style: "destructive", onPress: async () => { await discardXPBoost(); } },
+            { text: "Discard One", style: "destructive", onPress: async () => {
+              await discardXPBoost();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              setBoostDiscardFlash((n) => n + 1);
+            } },
           ]
         );
         return;
@@ -190,7 +196,11 @@ export default function GardenScreen() {
       : `You have ${state.streakFreezes}. Streak Freezes auto-apply if you miss a day. Discard one to free up space?`;
     Alert.alert(title, message, [
       { text: "Cancel", style: "cancel" },
-      { text: "Discard One", style: "destructive", onPress: async () => { await discardStreakFreeze(); } },
+      { text: "Discard One", style: "destructive", onPress: async () => {
+        await discardStreakFreeze();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        setFreezeDiscardFlash((n) => n + 1);
+      } },
     ]);
   }, [state.streakFreezes, freezeAtCap, badgesUntilFreeze, discardStreakFreeze]);
 
@@ -638,6 +648,7 @@ export default function GardenScreen() {
                   <Text style={styles.capPillText}>FULL</Text>
                 </View>
               )}
+              <XPCostFlash trigger={freezeDiscardFlash} amount={1} suffix="" color={colors.primary} />
               <Text style={styles.powerUpEmoji}>🧊</Text>
               <Text style={[styles.powerUpName, { color: colors.foreground }]}>Streak Freeze</Text>
               <Text style={[styles.powerUpCount, { color: colors.primary }]}>×{state.streakFreezes}</Text>
@@ -662,6 +673,7 @@ export default function GardenScreen() {
                   <Text style={styles.capPillText}>FULL</Text>
                 </View>
               )}
+              <XPCostFlash trigger={boostDiscardFlash} amount={1} suffix="" color={colors.accent} />
               <Text style={styles.powerUpEmoji}>⚡</Text>
               <Text style={[styles.powerUpName, { color: boostActive ? colors.accent : colors.foreground }]}>2x XP Boost</Text>
               <Text style={[styles.powerUpCount, { color: boostActive ? colors.accent : colors.xpGold }]}>

@@ -11,9 +11,10 @@ interface Props {
   trigger: number;
   amount: number;
   color: string;
+  suffix?: string;
 }
 
-export function XPCostFlash({ trigger, amount, color }: Props) {
+export function XPCostFlash({ trigger, amount, color, suffix = " XP" }: Props) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(0);
 
@@ -32,7 +33,7 @@ export function XPCostFlash({ trigger, amount, color }: Props) {
 
   return (
     <Animated.View style={[styles.container, animatedStyle]} pointerEvents="none">
-      <Text style={[styles.text, { color }]}>−{amount} XP</Text>
+      <Text style={[styles.text, { color }]}>−{amount}{suffix}</Text>
     </Animated.View>
   );
 }
