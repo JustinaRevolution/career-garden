@@ -357,6 +357,8 @@ export default function LessonScreen() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         onMomentumScrollEnd={handleScroll}
         getItemLayout={(_, index) => ({
           length: SCREEN_WIDTH,
