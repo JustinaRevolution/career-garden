@@ -20,7 +20,7 @@ Career Garden (formerly "USA Job Guide"): a gamified job-search companion app. E
 4. Keep it simple. YAGNI, KISS, DRY, orthogonality. Working over perfect.
 5. Fail loudly, fail safely. Never swallow exceptions. Logs say something. The app runs on phones — handle offline/empty states gracefully, don't crash.
 6. Security by default. No secrets in repo. Validate input. Least privilege.
-7. Reproducible builds. pnpm-lock.yaml is the contract — use pnpm, never npm/yarn (the preinstall script enforces this).
+7. Reproducible builds and deploys. pnpm-lock.yaml is the contract — use pnpm, never npm/yarn (the preinstall script enforces this).
 8. Data is sacred. User progress matters — don't break migrations or local state.
 9. Review before it ships. Read your own diff. Small changes.
 10. Debt is tracked, not hidden. Log hacks with a plan. Fix forward.
