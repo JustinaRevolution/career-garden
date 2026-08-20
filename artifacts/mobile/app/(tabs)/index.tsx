@@ -3,6 +3,7 @@ import { impact, notify, NotificationFeedbackType } from "@/lib/haptics";
 import { confirmAsync } from "@/lib/confirmAsync";
 import React, { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   Alert,
   Image,
@@ -1101,7 +1102,7 @@ export default function GardenScreen() {
         animationType="slide"
         onRequestClose={() => setVolumeModalVisible(false)}
       >
-        <View style={styles.sheetOverlay}>
+        <GestureHandlerRootView style={styles.sheetOverlay}>
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
@@ -1160,7 +1161,7 @@ export default function GardenScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </GestureHandlerRootView>
       </Modal>
     </View>
   );
