@@ -3,7 +3,6 @@ import { notify, NotificationFeedbackType } from "@/lib/haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -12,6 +11,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -28,20 +28,20 @@ import { MODULES, Quiz, QUIZ_XP } from "@/data/content";
 import { getQuiz } from "@/data/quizzes";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 function ContentPage({
   text,
   pageIndex,
   totalPages,
+  width,
 }: {
   text: string;
   pageIndex: number;
   totalPages: number;
+  width: number;
 }) {
   const colors = useColors();
   return (
-    <View style={[styles.page, { width: SCREEN_WIDTH }]}>
+    <View style={[styles.page, { width }]}>
       <View style={[styles.pageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.pageNum, { color: colors.mutedForeground }]}>
           {pageIndex + 1} of {totalPages}
@@ -58,12 +58,14 @@ function TakeawayPage({
   moduleColor,
   onComplete,
   isAlreadyCompleted,
+  width,
 }: {
   keyTakeaway: string;
   tip: string;
   moduleColor: string;
   onComplete: () => Promise<void>;
   isAlreadyCompleted: boolean;
+  width: number;
 }) {
   const colors = useColors();
   const scale = useSharedValue(1);
@@ -88,7 +90,7 @@ function TakeawayPage({
   }
 
   return (
-    <View style={[styles.page, { width: SCREEN_WIDTH }]}>
+    <View style={[styles.page, { width }]}>
       <View style={[styles.pageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={[styles.takeawayHeader, { backgroundColor: moduleColor + "22" }]}>
           <Ionicons name="key" size={22} color={moduleColor} />
@@ -130,11 +132,13 @@ function QuizPage({
   moduleColor,
   alreadyPassed,
   onPass,
+  width,
 }: {
   quiz: Quiz;
   moduleColor: string;
   alreadyPassed: boolean;
   onPass: () => Promise<void>;
+  width: number;
 }) {
   const colors = useColors();
   const [selected, setSelected] = useState<number | null>(null);
@@ -163,7 +167,7 @@ function QuizPage({
   }
 
   return (
-    <View style={[styles.page, { width: SCREEN_WIDTH }]}>
+    <View style={[styles.page, { width }]}>
       <View style={[styles.pageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={[styles.takeawayHeader, { backgroundColor: moduleColor + "22" }]}>
           <Ionicons name="help-circle" size={22} color={moduleColor} />
@@ -244,6 +248,7 @@ export default function LessonScreen() {
   }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const {
     completeLesson,
     isLessonCompleted,
@@ -289,7 +294,7 @@ export default function LessonScreen() {
       const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
       setCurrentIndex(idx);
     },
-    []
+    [SCREEN_WIDTH]
   );
 
   function goNext() {
@@ -372,6 +377,7 @@ export default function LessonScreen() {
                 text={item.text}
                 pageIndex={item.index}
                 totalPages={totalPages}
+                width={SCREEN_WIDTH}
               />
             );
           }
@@ -382,6 +388,7 @@ export default function LessonScreen() {
                 moduleColor={module.color}
                 alreadyPassed={quizAlreadyPassed}
                 onPass={handleQuizPass}
+                width={SCREEN_WIDTH}
               />
             );
           }
@@ -392,6 +399,7 @@ export default function LessonScreen() {
               moduleColor={module.color}
               onComplete={handleComplete}
               isAlreadyCompleted={alreadyCompleted}
+              width={SCREEN_WIDTH}
             />
           );
         }}

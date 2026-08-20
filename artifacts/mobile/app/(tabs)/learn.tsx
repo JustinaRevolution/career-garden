@@ -20,6 +20,7 @@ export default function LearnScreen() {
   const { getModuleProgress, state } = useGame();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const totalLessons = MODULES.reduce((s, m) => s + m.lessons.length, 0);
   const completedLessons = state.completedLessons.length;
   const overallPct = Math.round((completedLessons / totalLessons) * 100);
@@ -29,7 +30,7 @@ export default function LearnScreen() {
       style={[styles.root, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: topPad + 16, paddingBottom: 100 },
+        { paddingTop: topPad + 16, paddingBottom: bottomPad + 100 },
       ]}
       showsVerticalScrollIndicator={false}
     >
