@@ -19,6 +19,7 @@ export default function BadgesScreen() {
   const { isBadgeEarned, state } = useGame();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const earnedCount = state.earnedBadges.length;
 
   const pairs: (typeof BADGES[number] | null)[][] = [];
@@ -31,7 +32,7 @@ export default function BadgesScreen() {
       style={[styles.root, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: topPad + 16, paddingBottom: 100 },
+        { paddingTop: topPad + 16, paddingBottom: bottomPad + 100 },
       ]}
       ListHeaderComponent={
         <View style={styles.header}>

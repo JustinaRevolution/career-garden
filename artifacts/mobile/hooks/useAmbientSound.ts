@@ -5,7 +5,7 @@ import { AppState, AppStateStatus } from "react-native";
 
 const MUTE_KEY = "@career_garden/ambient_muted";
 const VOLUME_KEY = "@career_garden/ambient_volume";
-const DEFAULT_VOLUME = 0.25;
+const DEFAULT_VOLUME = 0.75;
 const CROSSFADE_MS = 1800;
 const CROSSFADE_STEPS = 18;
 
@@ -103,8 +103,13 @@ export function useAmbientSound(gardenLevel: number = 1) {
         currentTrackRef.current = initialTrack;
         readyRef.current = true;
         setIsReady(true);
-      } catch {
-        // Graceful degradation: ambient sound is optional
+      } catch (error) {
+        // Graceful degradation: ambient sound is optional in production, but
+        // a silent failure here (e.g. a native module mismatch) is easy to
+        // mistake for "audio is just quiet" — surface it while developing.
+        if (__DEV__) {
+          console.warn("[useAmbientSound] failed to initialize ambient audio:", error);
+        }
       }
     }
 
@@ -144,8 +149,6 @@ export function useAmbientSound(gardenLevel: number = 1) {
       const oldSound = soundRef.current;
 
       try {
-        const targetVolume = mutedRef.current ? 0 : volumeRef.current;
-
         // Reuse the track we preloaded ahead of the threshold so the crossfade
         // can begin immediately instead of waiting on a fresh decode/buffer.
         // Fall back to creating it on the spot if the preload wasn't ready.
@@ -181,6 +184,10 @@ export function useAmbientSound(gardenLevel: number = 1) {
         const stepMs = CROSSFADE_MS / CROSSFADE_STEPS;
         for (let i = 1; i <= CROSSFADE_STEPS; i++) {
           if (cancelled || myToken !== crossfadeTokenRef.current) break;
+          // Read the live target on every step (not once up front) so a volume
+          // drag or mute toggle mid-crossfade is reflected immediately instead
+          // of being overwritten by the next fade step.
+          const targetVolume = mutedRef.current ? 0 : volumeRef.current;
           const ratio = i / CROSSFADE_STEPS;
           await Promise.all([
             newSound.setVolumeAsync(targetVolume * ratio).catch(() => {}),

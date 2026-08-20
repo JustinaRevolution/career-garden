@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local dev artifacts (not part of the app)
+.pnpm-store/
+.playwright-mcp/

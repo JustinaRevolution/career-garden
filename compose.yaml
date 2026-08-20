@@ -1,0 +1,35 @@
+# Career Garden — sandboxed dev environment
+# Usage: docker compose up
+# The app runs inside the container, bound to localhost:8081 on the host.
+# The container CANNOT see ~/.hermes, ~/Documents, or any host secrets —
+# only the project directory is mounted.
+
+services:
+  career-garden:
+    build: .
+    container_name: career-garden-dev
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /workspace
+    # Mount ONLY the project. Nothing else from the host is exposed.
+    volumes:
+      - .:/workspace
+    # No named volumes for node_modules: the host's node_modules (already
+    # installed, owned by the host user) is used as-is. The container runs
+    # as the host UID (user: "${UID:-1000}:${GID:-1000}"), so the mounted
+    # files are writable. The sandbox protects the HOST from the code —
+    # the code runs in an isolated container with no access to the vault,
+    # keys, or .hermes. It does not need its own copy of node_modules.
+    ports:
+      # Host port is 8082 for now to avoid clashing with the host's Expo
+      # dev server on 8081 (used while Claude Code is mid-pass). When the
+      # host server is retired, change this to "8081:8081" so the container
+      # owns the canonical port.
+      - "8082:8081"
+    environment:
+      - CI=true
+      - EXPO_NO_TELEMETRY=1
+    # Dev server stays in the foreground so logs stream to the host.
+    command: >
+      sh -c "pnpm install --frozen-lockfile || pnpm install &&
+             pnpm --filter @workspace/mobile exec expo start --web --port 8081"
+    restart: "no"
