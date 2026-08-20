@@ -62,7 +62,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "expo-av": "~15.0.2",
+    "expo-av": "~16.0.8",
     "expo-media-library": "~18.2.1",
     "expo-notifications": "~0.32.17",
     "expo-sharing": "~14.0.8",

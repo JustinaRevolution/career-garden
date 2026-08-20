@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { impact, notify, NotificationFeedbackType } from "@/lib/haptics";
+import { confirmAsync } from "@/lib/confirmAsync";
 import React, { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import {
@@ -312,20 +313,19 @@ export default function GardenScreen() {
         Alert.alert("Not Enough XP", `You need ${price} XP to unlock ${name}.`);
         return;
       }
-      Alert.alert("Unlock " + name + "?", `Spend ${price} XP to unlock and equip this koi.`, [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Unlock",
-          onPress: async () => {
-            const ok = await buyCosmetic(cosmeticId);
-            if (ok) {
-              notify(NotificationFeedbackType.Success);
-              await equipCosmetic(cosmeticId);
-              setCosmeticFlash((f) => ({ id: cosmeticId, trigger: f.trigger + 1 }));
-            }
-          },
-        },
-      ]);
+      const okConfirm = await confirmAsync(
+        "Unlock " + name + "?",
+        `Spend ${price} XP to unlock and equip this koi.`,
+        "Unlock"
+      );
+      if (okConfirm) {
+        const ok = await buyCosmetic(cosmeticId);
+        if (ok) {
+          notify(NotificationFeedbackType.Success);
+          await equipCosmetic(cosmeticId);
+          setCosmeticFlash((f) => ({ id: cosmeticId, trigger: f.trigger + 1 }));
+        }
+      }
     },
     [state.ownedCosmetics, state.xp, buyCosmetic, equipCosmetic]
   );
